@@ -1,0 +1,6 @@
+streamlit
+python-dotenv
+google-cloud-datastore
+pytest
+pandas
+bcrypt
