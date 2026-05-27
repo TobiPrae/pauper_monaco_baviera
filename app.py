@@ -1,37 +1,42 @@
 import os
-from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
-from auth import check_password
+from auth import require_auth
+
+st.set_page_config(page_title="MTG Tournament Tracker", layout="wide")
 
 load_dotenv()
 
-# Support either a plain password (`STREAMLIT_PASSWORD`) or a hashed password (`STREAMLIT_PASSWORD_HASH`).
-PLAIN_PASSWORD = os.environ.get("STREAMLIT_PASSWORD")
-HASHED_PASSWORD = os.environ.get("STREAMLIT_PASSWORD_HASH")
-
+# Bevor require_auth() aufgerufen wird, prüfen wir ob authentifiziert
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("MTG Tournament Tracker — Login")
-    pwd = st.text_input("Password", type="password")
-    if st.button("Enter"):
-        # Prefer hashed password if provided
-        env_hash = HASHED_PASSWORD or (st.secrets.get("password_hash") if "password_hash" in st.secrets else None)
-        env_plain = PLAIN_PASSWORD or (st.secrets.get("password") if "password" in st.secrets else None)
-        valid = False
-        if env_hash:
-            valid = check_password(pwd, env_hash)
-        elif env_plain:
-            valid = (pwd == env_plain)
-
-        if valid:
-            st.session_state.authenticated = True
-            st.experimental_rerun()
-        else:
-            st.error("Invalid password. Set STREAMLIT_PASSWORD or STREAMLIT_PASSWORD_HASH env or secrets.")
+    # LOGIN SEITE - nur Login wird angezeigt
+    require_auth()
 else:
+    # HAUPTSEITE nach erfolgreichem Login
     st.title("MTG Tournament Tracker")
-    st.write("Use the pages menu to navigate: Player Management, League, Record Game, Edit Game.")
-    st.write("If you don't see pages, ensure files exist in the `pages/` folder.")
+    st.write("✅ Erfolgreich authentifiziert!")
+    
+    st.subheader("📖 Navigation")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("👥 Player Management", use_container_width=True):
+            st.switch_page("pages/Player_Management.py")
+        if st.button("📊 League", use_container_width=True):
+            st.switch_page("pages/League.py")
+    
+    with col2:
+        if st.button("📝 Record Game", use_container_width=True):
+            st.switch_page("pages/Record_Game.py")
+        if st.button("✏️ Edit Game", use_container_width=True):
+            st.switch_page("pages/Edit_Game.py")
+    
+    with col3:
+        if st.button("🏆 Playoffs", use_container_width=True):
+            st.switch_page("pages/Playoffs.py")
+    
+    st.divider()
+    st.info("Nutze die Buttons oben oder die Seiten-Navigation oben links um zwischen Seiten zu wechseln.")

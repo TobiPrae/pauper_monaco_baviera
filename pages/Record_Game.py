@@ -1,8 +1,11 @@
 import streamlit as st
 from datastore_client import get_client
 from models import Game, Match, compute_match_summary
+from auth import require_auth
 
 st.set_page_config(page_title="Record Game")
+
+require_auth()
 client = get_client()
 
 st.title("Record Game")
@@ -55,4 +58,4 @@ else:
             m = client.add_match(player_a=player_map[a_name], player_b=player_map[b_name], starting_player=starting, games=games_payload, went_in_time=went_in_time)
             st.success("Match recorded")
             st.json(compute_match_summary(m))
-            st.experimental_rerun()
+            st.rerun()

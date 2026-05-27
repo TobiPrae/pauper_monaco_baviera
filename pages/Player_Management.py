@@ -1,7 +1,10 @@
 import streamlit as st
 from datastore_client import get_client
+from auth import require_auth
 
 st.set_page_config(page_title="Player Management")
+
+require_auth()
 
 client = get_client()
 
