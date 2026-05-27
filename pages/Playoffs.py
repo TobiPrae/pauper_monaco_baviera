@@ -1,14 +1,14 @@
 import streamlit as st
 from datastore_client import get_client
-from utils import compute_standings, seed_playoff
+from utils import compute_standings
 from auth import require_auth
 
-st.set_page_config(page_title="Playoffs")
+st.set_page_config(page_title="Playoffs", layout="wide")
 
 require_auth()
 client = get_client()
 
-st.title("Playoffs")
+st.title("⚔️ Playoffs Bracket")
 players = client.list_players()
 matches = client.list_matches()
 
@@ -16,61 +16,134 @@ if not players:
     st.info("Add players first on Player Management page.")
 else:
     table = compute_standings(players, matches)
-    max_top = len(table)
-    top_n = st.number_input("Top N playoffs", min_value=2, max_value=max_top, value=min(4, max_top), step=1)
-    if st.button("Generate bracket"):
-        bracket = seed_playoff(table, top_n)
-        pairs = bracket.get('pairs', [])
-        bye = bracket.get('bye')
-        st.subheader("First round")
-        # store bracket in session state for subsequent rounds
-        st.session_state['playoff_round_1'] = {'pairs': pairs, 'bye': bye}
-
-    # Show current round if present
-    round_keys = [k for k in st.session_state.keys() if k.startswith('playoff_round_')]
-    if round_keys:
-        curr = sorted(round_keys)[-1]
-        data = st.session_state[curr]
-        pairs = data.get('pairs', [])
-        bye = data.get('bye')
-        winners = []
-        for i, p in enumerate(pairs, start=1):
-            col1, col2, col3 = st.columns([4,1,4])
-            a = p['player_a']
-            b = p['player_b']
-            st.write(f"Match {i}: {a['player_name']} (Seed {p['seed_a']}) vs {b['player_name']} (Seed {p['seed_b']})")
-            winner = st.selectbox(f"Winner of match {i}", [None, a['player_name'], b['player_name']], key=f"playoff_winner_{curr}_{i}")
-            winners.append({'match': p, 'winner': winner})
-
-        if bye:
-            st.info(f"Bye: {bye['player_name']}")
-
-        if st.button("Advance winners to next round"):
-            # build next round players list
-            next_players = []
-            if bye:
-                next_players.append(bye)
-            for w in winners:
-                winner_name = w['winner']
-                if not winner_name:
-                    st.error("Please select all winners before advancing")
-                    break
-                # find player dict
-                if winner_name == w['match']['player_a']['player_name']:
-                    next_players.append(w['match']['player_a'])
-                else:
-                    next_players.append(w['match']['player_b'])
-            else:
-                # create pairs for next round
-                # sort next_players by original seed if available
-                next_players_sorted = next_players
-                n = len(next_players_sorted)
-                pairs = []
-                for i in range(n//2):
-                    top = next_players_sorted[i]
-                    bottom = next_players_sorted[n - 1 - i]
-                    pairs.append({'seed_a': i+1, 'player_a': top, 'seed_b': n - i, 'player_b': bottom})
-                new_round = f'playoff_round_{len(round_keys)+1}'
-                st.session_state[new_round] = {'pairs': pairs, 'bye': None}
+    
+    if len(table) < 4:
+        st.error("Du brauchst mindestens 4 Spieler für das Playoff-Bracket!")
+    else:
+        # Get top 4 players
+        top_4 = table[:4]
+        
+        # Initialize bracket in session state
+        if 'bracket_initialized' not in st.session_state:
+            st.session_state['bracket_initialized'] = True
+            st.session_state['semifinals_winners'] = {}
+            st.session_state['champion'] = None
+        
+        st.divider()
+        
+        # Render bracket HTML with SVG - responsive with viewBox
+        bracket_html = '''
+        <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0; width: 100%;">
+        <svg viewBox="0 0 1200 700" style="width: 100%; max-width: 100%; height: auto; aspect-ratio: 1200/700;">
+        '''
+        
+        # Draw connector lines - straight lines that meet and no gaps
+        # Semifinal 1 (left side): Platz 1 and 4 meet at (300, 350)
+        bracket_html += '<line x1="150" y1="100" x2="150" y2="350" stroke="#999" stroke-width="2"/>'   # Platz 1 straight down
+        bracket_html += '<line x1="150" y1="350" x2="300" y2="350" stroke="#999" stroke-width="2"/>'   # Horizontal to SF1 point
+        bracket_html += '<line x1="150" y1="600" x2="150" y2="350" stroke="#999" stroke-width="2"/>'   # Platz 4 straight up
+        
+        # Semifinal 2 (right side): Platz 2 and 3 meet at (900, 350)
+        bracket_html += '<line x1="1050" y1="100" x2="1050" y2="350" stroke="#999" stroke-width="2"/>'  # Platz 2 straight down
+        bracket_html += '<line x1="1050" y1="350" x2="900" y2="350" stroke="#999" stroke-width="2"/>'   # Horizontal to SF2 point
+        bracket_html += '<line x1="1050" y1="600" x2="1050" y2="350" stroke="#999" stroke-width="2"/>'  # Platz 3 straight up
+        
+        # From semifinals to champion - continuous line to meeting point
+        bracket_html += '<line x1="300" y1="350" x2="900" y2="350" stroke="#999" stroke-width="2"/>'  # SF1 to SF2 (meeting point)
+        
+        # Helper function to create player box
+        def create_player_box(x, y, name, rank, color="#e8f4f8"):
+            return f'''<rect x="{x-80}" y="{y-25}" width="160" height="50" fill="{color}" stroke="#333" stroke-width="2" rx="5"/>
+                      <text x="{x}" y="{y-5}" text-anchor="middle" font-size="12" font-weight="bold">{name[:20]}</text>
+                      <text x="{x}" y="{y+10}" text-anchor="middle" font-size="10">Platz {rank}</text>'''
+        
+        # Place top 4 players
+        bracket_html += create_player_box(150, 100, top_4[0]['player_name'], 1)
+        bracket_html += create_player_box(1050, 100, top_4[1]['player_name'], 2)
+        bracket_html += create_player_box(1050, 600, top_4[2]['player_name'], 3)
+        bracket_html += create_player_box(150, 600, top_4[3]['player_name'], 4)
+        
+        # Place semifinal winners if they exist
+        semi_1_winner = st.session_state['semifinals_winners'].get('semi_1')
+        semi_2_winner = st.session_state['semifinals_winners'].get('semi_2')
+        
+        if semi_1_winner:
+            bracket_html += create_player_box(300, 350, semi_1_winner['player_name'], "SF1", "#90EE90")
+        if semi_2_winner:
+            bracket_html += create_player_box(900, 350, semi_2_winner['player_name'], "SF2", "#90EE90")
+        
+        # Champion box - always drawn (centered at x=600)
+        if st.session_state['champion']:
+            champion = st.session_state['champion']
+            bracket_html += f'''<rect x="520" y="325" width="160" height="50" fill="#FFD700" stroke="#333" stroke-width="3" rx="5"/>
+                              <text x="600" y="350" text-anchor="middle" font-size="13" font-weight="bold">{champion['player_name']}</text>
+                              <text x="600" y="365" text-anchor="middle" font-size="10">🏆 CHAMPION</text>'''
+        else:
+            bracket_html += '''<rect x="520" y="325" width="160" height="50" fill="#f0f0f0" stroke="#999" stroke-width="2" stroke-dasharray="5,5" rx="5"/>
+                              <text x="600" y="355" text-anchor="middle" font-size="11" fill="#999">Champion</text>'''
+        
+        bracket_html += '</svg></div>'
+        
+        st.markdown(bracket_html, unsafe_allow_html=True)
+        
+        st.divider()
+        
+        # Semifinal 1: Platz 1 vs Platz 4
+        if not semi_1_winner:
+            st.subheader("⚔️ Semifinal 1: Platz 1 vs Platz 4")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button(f"✅ {top_4[0]['player_name']} gewinnt", key="semi1_p1", use_container_width=True):
+                    st.session_state['semifinals_winners']['semi_1'] = top_4[0]
+                    st.rerun()
+            
+            with col2:
+                if st.button(f"✅ {top_4[3]['player_name']} gewinnt", key="semi1_p4", use_container_width=True):
+                    st.session_state['semifinals_winners']['semi_1'] = top_4[3]
+                    st.rerun()
+            
+            st.write("")
+        
+        # Semifinal 2: Platz 2 vs Platz 3
+        if not semi_2_winner and semi_1_winner:
+            st.subheader("⚔️ Semifinal 2: Platz 2 vs Platz 3")
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                if st.button(f"✅ {top_4[1]['player_name']} gewinnt", key="semi2_p2", use_container_width=True):
+                    st.session_state['semifinals_winners']['semi_2'] = top_4[1]
+                    st.rerun()
+            
+            with col4:
+                if st.button(f"✅ {top_4[2]['player_name']} gewinnt", key="semi2_p3", use_container_width=True):
+                    st.session_state['semifinals_winners']['semi_2'] = top_4[2]
+                    st.rerun()
+        
+        # Final
+        if semi_1_winner and semi_2_winner and not st.session_state['champion']:
+            st.divider()
+            st.subheader("🏆 FINALE")
+            
+            col_final_1, col_final_2 = st.columns(2)
+            
+            with col_final_1:
+                if st.button(f"👑 {semi_1_winner['player_name']} ist Champion!", key="final_1", use_container_width=True):
+                    st.session_state['champion'] = semi_1_winner
+                    st.rerun()
+            
+            with col_final_2:
+                if st.button(f"👑 {semi_2_winner['player_name']} ist Champion!", key="final_2", use_container_width=True):
+                    st.session_state['champion'] = semi_2_winner
+                    st.rerun()
+        
+        # Show champion
+        if st.session_state['champion']:
+            st.divider()
+            st.balloons()
+            
+            if st.button("🔄 Neues Turnier", use_container_width=True):
+                st.session_state['bracket_initialized'] = False
+                st.session_state['semifinals_winners'] = {}
+                st.session_state['champion'] = None
                 st.rerun()
-*** End Patch
