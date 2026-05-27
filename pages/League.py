@@ -1,7 +1,11 @@
-matches = client.list_matches()
 import streamlit as st
 from datastore_client import get_client
 from utils import compute_standings, seed_playoff
+from auth import require_auth
+
+st.set_page_config(page_title="League")
+
+require_auth()
 
 st.set_page_config(page_title="League")
 client = get_client()

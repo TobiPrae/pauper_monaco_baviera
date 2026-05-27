@@ -1,8 +1,11 @@
 import streamlit as st
 from datastore_client import get_client
 from models import compute_match_summary, Game
+from auth import require_auth
 
 st.set_page_config(page_title="Edit Game")
+
+require_auth()
 client = get_client()
 
 st.title("Edit Game")
