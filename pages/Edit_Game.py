@@ -56,11 +56,11 @@ else:
 
             client.update_match(m.id, games=games_payload, starting_player=starting, went_in_time=went_in_time)
             st.success("Match updated")
-            st.experimental_rerun()
+            st.rerun()
 
         if st.button("Delete match"):
             confirm = st.checkbox("Confirm delete? This cannot be undone.", key=f"confirm_match_{m.id}")
             if confirm:
                 client.matches.pop(m.id, None)
                 st.success("Match deleted")
-                st.experimental_rerun()
+                st.rerun()

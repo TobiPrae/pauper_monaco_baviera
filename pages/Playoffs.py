@@ -69,5 +69,5 @@ else:
                     pairs.append({'seed_a': i+1, 'player_a': top, 'seed_b': n - i, 'player_b': bottom})
                 new_round = f'playoff_round_{len(round_keys)+1}'
                 st.session_state[new_round] = {'pairs': pairs, 'bye': None}
-                st.experimental_rerun()
+                st.rerun()
 *** End Patch

@@ -28,7 +28,7 @@ if not st.session_state.authenticated:
 
         if valid:
             st.session_state.authenticated = True
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Invalid password. Set STREAMLIT_PASSWORD or STREAMLIT_PASSWORD_HASH env or secrets.")
 else:

@@ -55,4 +55,4 @@ else:
             m = client.add_match(player_a=player_map[a_name], player_b=player_map[b_name], starting_player=starting, games=games_payload, went_in_time=went_in_time)
             st.success("Match recorded")
             st.json(compute_match_summary(m))
-            st.experimental_rerun()
+            st.rerun()
