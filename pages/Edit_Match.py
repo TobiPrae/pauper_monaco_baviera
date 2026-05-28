@@ -3,19 +3,21 @@ from datastore_client import get_client
 from models import compute_match_summary, Game
 from auth import require_auth
 
-st.set_page_config(page_title="Edit Game")
+st.set_page_config(page_title="Edit Match")
 
 require_auth()
 client = get_client()
 
 matches = client.list_matches()
 players = client.list_players()
+leagues = client.list_leagues()
 player_map = {p.id: p.player_name for p in players}
 
 if not matches:
     st.info("No matches recorded yet.")
 else:
     sel = st.selectbox("Select match", [f"{m.id} - {player_map.get(m.player_a,'?')} vs {player_map.get(m.player_b,'?')}" for m in matches])
+    leagues.sort(key=lambda x: x.nr, reverse=True)
     mid = sel.split(" - ")[0]
     m = next((x for x in matches if x.id == mid), None)
     if m:
@@ -32,6 +34,14 @@ else:
             if winner_code == 'B':
                 return name_b
             return None
+
+        # League selection
+        league_index = 0
+        if leagues:
+            league_index = next((i for i, l in enumerate(leagues) if l.id == m.league_id), 0)
+            selected_league = st.selectbox("League", leagues, format_func=lambda x: f"League {x.nr}", index=league_index)
+        else:
+            st.warning("No leagues found. Please create one in League Management.")
 
         g_opts = [None, name_a, name_b]
         g1 = st.selectbox("Game 1 winner", g_opts, index=(g_opts.index(winner_name(m.games[0].winner)) if len(m.games) >= 1 else 0))
@@ -56,7 +66,7 @@ else:
                 {'winner': sel_to_code(g3)},
             ]
 
-            client.update_match(m.id, games=games_payload, starting_player=starting, went_in_time=went_in_time)
+            client.update_match(m.id, games=games_payload, starting_player=starting, went_in_time=went_in_time, league_id=selected_league.id if leagues else m.league_id)
             st.success("Match updated")
             st.rerun()
 

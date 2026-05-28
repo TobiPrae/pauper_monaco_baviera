@@ -17,7 +17,7 @@ else:
     table = compute_standings(players, matches)
     
     if len(table) < 4:
-        st.error("Du brauchst mindestens 4 Spieler für das Playoff-Bracket!")
+        st.error("You need at least 4 players for the playoff bracket!")
     else:
         # Get top 4 players
         top_4 = table[:4]
@@ -54,7 +54,7 @@ else:
         def create_player_box(x, y, name, rank, color="#e8f4f8"):
             return f'''<rect x="{x-80}" y="{y-25}" width="160" height="50" fill="{color}" stroke="#333" stroke-width="2" rx="5"/>
                       <text x="{x}" y="{y-5}" text-anchor="middle" font-size="12" font-weight="bold">{name[:20]}</text>
-                      <text x="{x}" y="{y+10}" text-anchor="middle" font-size="10">Platz {rank}</text>'''
+                      <text x="{x}" y="{y+10}" text-anchor="middle" font-size="10">Rank {rank}</text>'''
         
         # Place top 4 players
         bracket_html += create_player_box(150, 100, top_4[0]['player_name'], 1)
@@ -89,16 +89,16 @@ else:
         
         # Semifinal 1: Platz 1 vs Platz 4
         if not semi_1_winner:
-            st.subheader("⚔️ Semifinal 1: Platz 1 vs Platz 4")
+            st.subheader("⚔️ Semifinal 1: Rank 1 vs Rank 4")
             col1, col2 = st.columns(2)
             
             with col1:
-                if st.button(f"✅ {top_4[0]['player_name']} gewinnt", key="semi1_p1", use_container_width=True):
+                if st.button(f"✅ {top_4[0]['player_name']} wins", key="semi1_p1", use_container_width=True):
                     st.session_state['semifinals_winners']['semi_1'] = top_4[0]
                     st.rerun()
             
             with col2:
-                if st.button(f"✅ {top_4[3]['player_name']} gewinnt", key="semi1_p4", use_container_width=True):
+                if st.button(f"✅ {top_4[3]['player_name']} wins", key="semi1_p4", use_container_width=True):
                     st.session_state['semifinals_winners']['semi_1'] = top_4[3]
                     st.rerun()
             
@@ -106,33 +106,33 @@ else:
         
         # Semifinal 2: Platz 2 vs Platz 3
         if not semi_2_winner and semi_1_winner:
-            st.subheader("⚔️ Semifinal 2: Platz 2 vs Platz 3")
+            st.subheader("⚔️ Semifinal 2: Rank 2 vs Rank 3")
             col3, col4 = st.columns(2)
             
             with col3:
-                if st.button(f"✅ {top_4[1]['player_name']} gewinnt", key="semi2_p2", use_container_width=True):
+                if st.button(f"✅ {top_4[1]['player_name']} wins", key="semi2_p2", use_container_width=True):
                     st.session_state['semifinals_winners']['semi_2'] = top_4[1]
                     st.rerun()
             
             with col4:
-                if st.button(f"✅ {top_4[2]['player_name']} gewinnt", key="semi2_p3", use_container_width=True):
+                if st.button(f"✅ {top_4[2]['player_name']} wins", key="semi2_p3", use_container_width=True):
                     st.session_state['semifinals_winners']['semi_2'] = top_4[2]
                     st.rerun()
         
         # Final
         if semi_1_winner and semi_2_winner and not st.session_state['champion']:
             st.divider()
-            st.subheader("🏆 FINALE")
+            st.subheader("🏆 FINAL")
             
             col_final_1, col_final_2 = st.columns(2)
             
             with col_final_1:
-                if st.button(f"👑 {semi_1_winner['player_name']} ist Champion!", key="final_1", use_container_width=True):
+                if st.button(f"👑 {semi_1_winner['player_name']} is Champion!", key="final_1", use_container_width=True):
                     st.session_state['champion'] = semi_1_winner
                     st.rerun()
             
             with col_final_2:
-                if st.button(f"👑 {semi_2_winner['player_name']} ist Champion!", key="final_2", use_container_width=True):
+                if st.button(f"👑 {semi_2_winner['player_name']} is Champion!", key="final_2", use_container_width=True):
                     st.session_state['champion'] = semi_2_winner
                     st.rerun()
         
@@ -141,7 +141,7 @@ else:
             st.divider()
             st.balloons()
             
-            if st.button("🔄 Neues Turnier", use_container_width=True):
+            if st.button("🔄 New Tournament", use_container_width=True):
                 st.session_state['bracket_initialized'] = False
                 st.session_state['semifinals_winners'] = {}
                 st.session_state['champion'] = None
