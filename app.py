@@ -1,18 +1,16 @@
 import streamlit as st
 from dotenv import load_dotenv
 from auth import require_auth
-from components import show_logo
 
 # Page config similar to your example
 st.set_page_config(
-    page_title="MTG Tournament Tracker",
-    page_icon="assets/logo.jpg",
+    page_title="Pauper Monaco",
+    page_icon="🍆",
     layout="centered",
-    initial_sidebar_state="collapsed",
+    #initial_sidebar_state="collapsed",
 )
 
 load_dotenv()
-show_logo()
 
 # Ensure session auth flag exists
 if "authenticated" not in st.session_state:
@@ -20,17 +18,33 @@ if "authenticated" not in st.session_state:
 
 if not st.session_state.authenticated:
     require_auth()
-else:
-    #st.title("MTG Tournament Tracker")
-    #st.write("✅ Erfolgreich authentifiziert!")
-    pass
 
-st.set_page_config(
-    page_title="B+T", 
-    page_icon="assets/logo.png", 
-    layout="centered",
-    initial_sidebar_state="collapsed"
-    )
+# This places the image at the top of the sidebar
+#st.sidebar.image("assets/logo.png", use_container_width=True)
+st.logo("assets/logo.png")
+
+# 3. Inject "Heavy" CSS to force the size
+st.markdown(
+    """
+    <style>
+        /* This targets the container that Streamlit uses for the logo */
+        [data-testid="stSidebarHeader"] img {
+            max-height: 120px !important;  /* Adjust this value as needed */
+            width: auto !important;
+            height: auto !important;
+        }
+        
+        /* Optional: This reduces the padding around the logo to give it more room */
+        [data-testid="stSidebarHeader"] {
+            padding-top: 2rem !important;
+            padding-bottom: 1rem !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.divider()
 
 league = st.Page("pages/League.py", title="League")
 player_management = st.Page("pages/Player_Management.py", title="Manage Players")

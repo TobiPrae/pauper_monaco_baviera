@@ -37,7 +37,7 @@ def require_auth():
     
     # If not authenticated, show login and stop execution
     if not st.session_state.authenticated:
-        st.title("MTG Tournament Tracker — Login")
+        st.image("assets/logo.png", width="stretch")
         
         def check_login():
             """Callback für Login-Check (Enter oder Button)"""

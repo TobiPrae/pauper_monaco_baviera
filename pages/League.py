@@ -28,13 +28,8 @@ if table:
         'Total Games': 'total_games'
     }
 
-    st.sidebar.header("Table options")
-    sort_label = st.sidebar.selectbox("Sort by", list(sort_columns.keys()), index=0)
-    sort_key = sort_columns[sort_label]
-    desc = st.sidebar.checkbox("Descending", value=True)
-
     # Apply sort
-    df = df.sort_values(by=sort_key, ascending=(not desc))
+    df = df.sort_values(by='points_plus', ascending=False)
 
     # Reorder and display desired columns in specified order
     display_cols = ['player_name', 'points', 'points_plus', 'match_wins', 'match_losses', 'match_draws', 'total_matches', 'game_wins', 'game_losses', 'total_games', 'game_win_rate']
