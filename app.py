@@ -1,42 +1,42 @@
-import os
 import streamlit as st
 from dotenv import load_dotenv
 from auth import require_auth
 
-st.set_page_config(page_title="MTG Tournament Tracker", layout="wide")
+# Page config similar to your example
+st.set_page_config(
+    page_title="MTG Tournament Tracker",
+    page_icon="assets/logo.jpg",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
 
 load_dotenv()
+#show_logo()
 
-# Bevor require_auth() aufgerufen wird, prüfen wir ob authentifiziert
+# Ensure session auth flag exists
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    # LOGIN SEITE - nur Login wird angezeigt
     require_auth()
 else:
-    # HAUPTSEITE nach erfolgreichem Login
-    st.title("MTG Tournament Tracker")
-    st.write("✅ Erfolgreich authentifiziert!")
-    
-    st.subheader("📖 Navigation")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("👥 Player Management", use_container_width=True):
-            st.switch_page("pages/Player_Management.py")
-        if st.button("📊 League", use_container_width=True):
-            st.switch_page("pages/League.py")
-    
-    with col2:
-        if st.button("📝 Record Game", use_container_width=True):
-            st.switch_page("pages/Record_Game.py")
-        if st.button("✏️ Edit Game", use_container_width=True):
-            st.switch_page("pages/Edit_Game.py")
-    
-    with col3:
-        if st.button("🏆 Playoffs", use_container_width=True):
-            st.switch_page("pages/Playoffs.py")
-    
-    st.divider()
-    st.info("Nutze die Buttons oben oder die Seiten-Navigation oben links um zwischen Seiten zu wechseln.")
+    #st.title("MTG Tournament Tracker")
+    #st.write("✅ Erfolgreich authentifiziert!")
+    pass
+
+st.set_page_config(
+    page_title="B+T", 
+    page_icon="assets/logo.png", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+    )
+
+league = st.Page("pages/League.py", title="League")
+player_management = st.Page("pages/Player_Management.py", title="Manage Players")
+playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
+record_game = st.Page("pages/Record_Game.py", title="Record Game")
+edit_game = st.Page("pages/Edit_Game.py", title="Edit Game")
+
+pg = st.navigation([league, player_management, playoffs, record_game, edit_game])
+
+pg.run()
