@@ -8,7 +8,6 @@ st.set_page_config(page_title="Playoffs", layout="wide")
 require_auth()
 client = get_client()
 
-st.title("⚔️ Playoffs Bracket")
 players = client.list_players()
 matches = client.list_matches()
 

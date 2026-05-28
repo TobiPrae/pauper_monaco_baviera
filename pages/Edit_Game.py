@@ -8,7 +8,6 @@ st.set_page_config(page_title="Edit Game")
 require_auth()
 client = get_client()
 
-st.title("Edit Game")
 matches = client.list_matches()
 players = client.list_players()
 player_map = {p.id: p.player_name for p in players}

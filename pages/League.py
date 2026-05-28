@@ -10,7 +10,6 @@ require_auth()
 st.set_page_config(page_title="League")
 client = get_client()
 
-st.title("League Table")
 players = client.list_players()
 matches = client.list_matches()
 

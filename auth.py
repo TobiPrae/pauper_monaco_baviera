@@ -1,4 +1,7 @@
 import os
+import warnings
+warnings.filterwarnings("ignore")
+
 try:
     import bcrypt
     _HAS_BCRYPT = True
@@ -34,7 +37,7 @@ def require_auth():
     
     # If not authenticated, show login and stop execution
     if not st.session_state.authenticated:
-        st.title("🔐 MTG Tournament Tracker — Login")
+        st.title("MTG Tournament Tracker — Login")
         
         def check_login():
             """Callback für Login-Check (Enter oder Button)"""

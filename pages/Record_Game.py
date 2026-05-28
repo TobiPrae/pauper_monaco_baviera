@@ -8,7 +8,6 @@ st.set_page_config(page_title="Record Game")
 require_auth()
 client = get_client()
 
-st.title("Record Game")
 players = client.list_players()
 player_map = {p.player_name: p.id for p in players}
 

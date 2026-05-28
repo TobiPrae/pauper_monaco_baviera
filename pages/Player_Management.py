@@ -8,8 +8,6 @@ require_auth()
 
 client = get_client()
 
-st.title("Player Management")
-
 st.subheader("Add player")
 with st.form("add_player"):
     name = st.text_input("Player name", key="add_name")

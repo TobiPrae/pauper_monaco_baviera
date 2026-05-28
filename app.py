@@ -1,6 +1,7 @@
 import streamlit as st
 from dotenv import load_dotenv
 from auth import require_auth
+from components import show_logo
 
 # Page config similar to your example
 st.set_page_config(
@@ -11,7 +12,7 @@ st.set_page_config(
 )
 
 load_dotenv()
-#show_logo()
+show_logo()
 
 # Ensure session auth flag exists
 if "authenticated" not in st.session_state:
