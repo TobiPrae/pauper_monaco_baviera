@@ -1,42 +1,57 @@
-import os
 import streamlit as st
 from dotenv import load_dotenv
 from auth import require_auth
 
-st.set_page_config(page_title="MTG Tournament Tracker", layout="wide")
+# Page config similar to your example
+st.set_page_config(
+    page_title="Pauper Monaco",
+    page_icon="🍆",
+    layout="centered",
+    #initial_sidebar_state="collapsed",
+)
 
 load_dotenv()
 
-# Bevor require_auth() aufgerufen wird, prüfen wir ob authentifiziert
+# Ensure session auth flag exists
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    # LOGIN SEITE - nur Login wird angezeigt
     require_auth()
-else:
-    # HAUPTSEITE nach erfolgreichem Login
-    st.title("MTG Tournament Tracker")
-    st.write("✅ Erfolgreich authentifiziert!")
-    
-    st.subheader("📖 Navigation")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("👥 Player Management", use_container_width=True):
-            st.switch_page("pages/Player_Management.py")
-        if st.button("📊 League", use_container_width=True):
-            st.switch_page("pages/League.py")
-    
-    with col2:
-        if st.button("📝 Record Game", use_container_width=True):
-            st.switch_page("pages/Record_Game.py")
-        if st.button("✏️ Edit Game", use_container_width=True):
-            st.switch_page("pages/Edit_Game.py")
-    
-    with col3:
-        if st.button("🏆 Playoffs", use_container_width=True):
-            st.switch_page("pages/Playoffs.py")
-    
-    st.divider()
-    st.info("Nutze die Buttons oben oder die Seiten-Navigation oben links um zwischen Seiten zu wechseln.")
+
+# This places the image at the top of the sidebar
+#st.sidebar.image("assets/logo.png", use_container_width=True)
+st.logo("assets/logo.png")
+
+# 3. Inject "Heavy" CSS to force the size
+st.markdown(
+    """
+    <style>
+        /* This targets the container that Streamlit uses for the logo */
+        [data-testid="stSidebarHeader"] img {
+            max-height: 120px !important;  /* Adjust this value as needed */
+            width: auto !important;
+            height: auto !important;
+        }
+        
+        /* Optional: This reduces the padding around the logo to give it more room */
+        [data-testid="stSidebarHeader"] {
+            padding-top: 2rem !important;
+            padding-bottom: 1rem !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.divider()
+
+league = st.Page("pages/League.py", title="League")
+player_management = st.Page("pages/Player_Management.py", title="Manage Players")
+playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
+record_game = st.Page("pages/Record_Game.py", title="Record Game")
+edit_game = st.Page("pages/Edit_Game.py", title="Edit Game")
+
+pg = st.navigation([league, player_management, playoffs, record_game, edit_game])
+
+pg.run()

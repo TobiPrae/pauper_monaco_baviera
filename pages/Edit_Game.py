@@ -8,7 +8,6 @@ st.set_page_config(page_title="Edit Game")
 require_auth()
 client = get_client()
 
-st.title("Edit Game")
 matches = client.list_matches()
 players = client.list_players()
 player_map = {p.id: p.player_name for p in players}
@@ -23,8 +22,8 @@ else:
         name_a = player_map.get(m.player_a, m.player_a)
         name_b = player_map.get(m.player_b, m.player_b)
         st.write(f"**{name_a}** vs **{name_b}**")
-        summ = compute_match_summary(m)
-        st.json(summ)
+        #summ = compute_match_summary(m)
+        #st.json(summ)
 
         # build current selections
         def winner_name(winner_code):

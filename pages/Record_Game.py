@@ -8,7 +8,6 @@ st.set_page_config(page_title="Record Game")
 require_auth()
 client = get_client()
 
-st.title("Record Game")
 players = client.list_players()
 player_map = {p.player_name: p.id for p in players}
 
@@ -42,8 +41,8 @@ else:
         temp_games = [Game(game_index=1, winner=name_to_code(g1)), Game(game_index=2, winner=name_to_code(g2)), Game(game_index=3, winner=name_to_code(g3))]
         temp_match = Match(id="preview", player_a=player_map[a_name], player_b=player_map[b_name], starting_player=starting, games=temp_games, went_in_time=went_in_time)
         summary = compute_match_summary(temp_match)
-        st.subheader("Match preview")
-        st.json(summary)
+        #st.subheader("Match preview")
+        #st.json(summary)
 
         save_disabled = (a_name == b_name)
         if save_disabled:
