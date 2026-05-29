@@ -63,7 +63,7 @@ with st.form("add_league"):
 
         for pid, p_name in roster_selections.items():
             # Create a default deck for each player and add them to the league
-            default_deck = client.add_deck(deck_name=f"{p_name} deck")
+            default_deck = client.add_deck(deck_name=f"{p_name}'s Deck")
             client.add_player_to_league(new_league.id, pid, default_deck.id)
             
         # Automatically generate Round Robin matches using the Circle Method to avoid double-playing
