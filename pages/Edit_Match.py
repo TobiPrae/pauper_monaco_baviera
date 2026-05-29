@@ -8,6 +8,11 @@ st.set_page_config(page_title="Edit Match")
 require_auth()
 client = get_client()
 
+# Display success message from previous run if it exists
+if "success_msg" in st.session_state:
+    st.success(st.session_state.success_msg)
+    del st.session_state.success_msg
+
 matches = client.list_matches()
 players = client.list_players()
 leagues = client.list_leagues()
@@ -67,7 +72,7 @@ else:
             ]
 
             client.update_match(m.id, games=games_payload, starting_player=starting, went_in_time=went_in_time, league_id=selected_league.id if leagues else m.league_id)
-            st.success("Match updated")
+            st.session_state.success_msg = "Match updated"
             st.rerun()
 
         if st.button("Delete match"):

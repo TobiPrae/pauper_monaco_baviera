@@ -114,24 +114,50 @@ class DatastoreClient:
             return [Deck(id=str(e.key.id or e.key.name), deck_name=e.get("deck_name"), deck_list_link=e.get("deck_list_link")) for e in res]
         return list(self.decks.values())
 
+    def update_deck(self, did: str, **fields) -> Optional[Deck]:
+        if self.client:
+            key = self.client.key("Deck", int(did) if did.isdigit() else did)
+            entity = self.client.get(key)
+            if not entity: return None
+            entity.update(fields)
+            self.client.put(entity)
+            return Deck(id=did, deck_name=entity.get("deck_name"), deck_list_link=entity.get("deck_list_link"))
+        
+        d = self.decks.get(did)
+        if not d: return None
+        for k, v in fields.items():
+            if hasattr(d, k): setattr(d, k, v)
+        return d
+
+    def delete_deck(self, did: str) -> bool:
+        if self.client:
+            try:
+                key = self.client.key("Deck", int(did) if did.isdigit() else did)
+                self.client.delete(key)
+                return True
+            except Exception: return False
+        return self.decks.pop(did, None) is not None
+
     # --- League methods ---
-    def add_league(self, nr: int, start_date: str, end_date: str) -> League:
+    def add_league(self, nr: int, start_date: str, weeks_rounds: int, weeks_playoffs: int, end_date: str) -> League:
         if self.client:
             key = self.client.key("League")
             entity = _datastore.Entity(key=key)
             entity.update({
                 "nr": nr,
                 "start_date": start_date,
+                "weeks_rounds": weeks_rounds,
+                "weeks_playoffs": weeks_playoffs,
                 "end_date": end_date,
                 "round_robin_closed": False,
                 "playoffs_closed": False
             })
             self.client.put(entity)
             lid = str(entity.key.id or entity.key.name)
-            return League(id=lid, nr=nr, start_date=start_date, end_date=end_date)
+            return League(id=lid, nr=nr, start_date=start_date, weeks_rounds=weeks_rounds, weeks_playoffs=weeks_playoffs, end_date=end_date)
 
-        lid = str(int(time.time() * 1000))
-        l = League(id=lid, nr=nr, start_date=start_date, end_date=end_date)
+        lid = str(uuid.uuid4())
+        l = League(id=lid, nr=nr, start_date=start_date, weeks_rounds=weeks_rounds, weeks_playoffs=weeks_playoffs, end_date=end_date)
         self.leagues[lid] = l
         return l
 
@@ -143,6 +169,8 @@ class DatastoreClient:
                 id=str(e.key.id or e.key.name),
                 nr=e.get("nr"),
                 start_date=e.get("start_date"),
+                weeks_rounds=e.get("weeks_rounds", 0),
+                weeks_playoffs=e.get("weeks_playoffs", 0),
                 end_date=e.get("end_date"),
                 round_robin_closed=e.get("round_robin_closed", False),
                 playoffs_closed=e.get("playoffs_closed", False)
@@ -204,6 +232,21 @@ class DatastoreClient:
         if league_id:
             return [lp for lp in self.league_players.values() if lp.league_id == league_id]
         return list(self.league_players.values())
+
+    def update_league_player(self, lp_id: str, **fields) -> bool:
+        if self.client:
+            key = self.client.key("LeaguePlayer", int(lp_id) if lp_id.isdigit() else lp_id)
+            entity = self.client.get(key)
+            if not entity: return False
+            entity.update(fields)
+            self.client.put(entity)
+            return True
+        
+        lp = self.league_players.get(lp_id)
+        if not lp: return False
+        for k, v in fields.items():
+            if hasattr(lp, k): setattr(lp, k, v)
+        return True
 
     def remove_player_from_league(self, lp_id: str) -> bool:
         if self.client:
