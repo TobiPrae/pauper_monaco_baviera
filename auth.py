@@ -51,17 +51,17 @@ def require_auth():
             elif env_plain:
                 valid = (pwd == env_plain)
             else:
-                st.error("❌ Passwort nicht konfiguriert. Setze STREAMLIT_PASSWORD oder STREAMLIT_PASSWORD_HASH als Umgebungsvariable.")
+                st.error("❌ Password not configured. Set STREAMLIT_PASSWORD or STREAMLIT_PASSWORD_HASH as environment variable.")
                 st.stop()
             
             if valid:
                 st.session_state.authenticated = True
             else:
-                st.error("❌ Falsches Passwort!")
+                st.error("❌ Incorrect password!")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.text_input("Passwort eingeben:", type="password", key="login_password", on_change=check_login)
-            st.button("Anmelden", use_container_width=True, on_click=check_login)
+            st.text_input("Enter password:", type="password", key="login_password", on_change=check_login)
+            st.button("Log in", use_container_width=True, on_click=check_login)
         
         st.stop()  # Stop execution if not authenticated

@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Pauper Monaco",
     page_icon="🍆",
     layout="centered",
-    #initial_sidebar_state="collapsed",
+    initial_sidebar_state="collapsed",
 )
 
 load_dotenv()
@@ -47,11 +47,12 @@ st.markdown(
 st.divider()
 
 league = st.Page("pages/League.py", title="League")
-player_management = st.Page("pages/Player_Management.py", title="Manage Players")
 playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
-record_game = st.Page("pages/Record_Game.py", title="Record Game")
-edit_game = st.Page("pages/Edit_Game.py", title="Edit Game")
+record_match = st.Page("pages/Record_Match.py", title="Record Match")
+edit_match = st.Page("pages/Edit_Match.py", title="Edit Match")
+player_management = st.Page("pages/Player_Management.py", title="Manage Players")
+league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
 
-pg = st.navigation([league, player_management, playoffs, record_game, edit_game])
+pg = st.navigation([league, playoffs, record_match, edit_match, player_management, league_management])
 
 pg.run()
