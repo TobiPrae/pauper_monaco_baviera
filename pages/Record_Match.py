@@ -8,6 +8,11 @@ st.set_page_config(page_title="Record Match")
 require_auth()
 client = get_client()
 
+# Display success message from previous run if it exists
+if "success_msg" in st.session_state:
+    st.success(st.session_state.success_msg)
+    del st.session_state.success_msg
+
 players = client.list_players()
 leagues = client.list_leagues()
 player_map = {p.player_name: p.id for p in players}
@@ -68,6 +73,5 @@ else:
                 games=games_payload, 
                 went_in_time=went_in_time
             )
-            st.success("Match recorded")
-            st.json(compute_match_summary(m))
+            st.session_state.success_msg = "Match recorded successfully!"
             st.rerun()

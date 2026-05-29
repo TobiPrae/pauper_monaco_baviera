@@ -8,6 +8,11 @@ require_auth()
 
 client = get_client()
 
+# Display success message from previous run if it exists
+if "success_msg" in st.session_state:
+    st.success(st.session_state.success_msg)
+    del st.session_state.success_msg
+
 st.subheader("Add player")
 with st.form("add_player"):
     name = st.text_input("Player name", key="add_name")
@@ -17,11 +22,11 @@ with st.form("add_player"):
             st.error("Player name is required")
         else:
             p = client.add_player(player_name=name)
-            st.success(f"Added {p.player_name}")
+            st.session_state.success_msg = f"Added {p.player_name}"
             st.rerun()
 
 
-st.header("Edit Players")
+st.subheader("Edit Players")
 players = client.list_players()
 players.sort(key=lambda x: x.player_name.lower())
 
@@ -42,7 +47,7 @@ else:
             
             if save:
                 client.update_player(selected_player.id, player_name=new_name)
-                st.success("Player updated")
+                st.session_state.success_msg = "Player updated"
                 st.rerun()
             
             #if delete:

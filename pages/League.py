@@ -7,7 +7,6 @@ st.set_page_config(page_title="League")
 
 require_auth()
 
-st.set_page_config(page_title="League")
 client = get_client()
 
 players = client.list_players()
@@ -18,26 +17,38 @@ table = compute_standings(players, matches)
 import pandas as pd
 if table:
     df = pd.DataFrame(table)
-    # Columns we support sorting by (keys from table entries)
-    sort_columns = {
-        'Points + (Game Win %)': 'points_plus',
-        'Points': 'points',
-        'Game Win Rate': 'game_win_rate',
-        'Match Wins': 'match_wins',
-        'Game Wins': 'game_wins',
-        'Total Games': 'total_games'
+
+    # Mapping internal keys to display names
+    col_mapping = {
+        'player_name': 'Player',
+        'points_plus': 'Points+GWR',
+        'points': 'Points',
+        'match_wins': 'Match Wins',
+        'match_losses': 'Match Losses',
+        'match_draws': 'Match Draws',
+        'total_matches': 'Total Matches',
+        'game_wins': 'Game Wins',
+        'game_losses': 'Game Losses',
+        'total_games': 'Total Games',
+        'game_win_rate': 'Game Win Rate'
     }
 
-    # Apply sort
-    df = df.sort_values(by='points_plus', ascending=False)
+    # Sort by the primary metric and apply name mapping
+    df.insert(0, 'Rank', range(1, len(df) + 1))
+    df = df.sort_values(by='Rank', ascending=True).reset_index(drop=True)
+    df = df.rename(columns=col_mapping)
 
-    # Reorder and display desired columns in specified order
-    display_cols = ['player_name', 'points', 'points_plus', 'match_wins', 'match_losses', 'match_draws', 'total_matches', 'game_wins', 'game_losses', 'total_games', 'game_win_rate']
-    df = df[display_cols]
-    df.columns = ['Player','Points','Points + (Game Wins / Total Games Played)','Match Wins','Match Losses','Match Draws','Total Matches Played','Game Wins','Game Losses','Total Games Played','Game Win Rate']
+    # Configuration for dynamic columns
+    all_display_cols = ['Rank'] + list(col_mapping.values())
+    default_cols = ['Rank', 'Player', 'Points+GWR','Total Matches']
 
     st.subheader("Standings")
-    st.dataframe(df)
+    selected_cols = st.multiselect("Select columns to display:", options=all_display_cols, default=default_cols)
+
+    if selected_cols:
+        st.dataframe(df[selected_cols], use_container_width=True, hide_index=True)
+    else:
+        st.info("Select at least one column to display the table.")
 
     # Top-n playoffs control
     max_top = len(df)
