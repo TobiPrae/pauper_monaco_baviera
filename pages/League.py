@@ -58,7 +58,6 @@ if table:
     all_display_cols = ['Rank'] + list(col_mapping.values())
     default_cols = ['Rank', 'Player', 'Points+GWR','Total Matches']
 
-    st.subheader(f"Standings - League {selected_league.nr}")
     selected_cols = st.multiselect("Select columns to display:", options=all_display_cols, default=default_cols)
 
     if selected_cols:

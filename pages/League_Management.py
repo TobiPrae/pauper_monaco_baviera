@@ -16,8 +16,6 @@ if "success_msg" in st.session_state:
     del st.session_state.success_msg
 
 players = client.list_players()
-decks = client.list_decks()
-deck_options = [None] + decks
 deck_format = lambda x: x.deck_name if x else "No Deck Selected"
 
 # --- ADD LEAGUE ---
@@ -32,11 +30,9 @@ with st.form("add_league"):
     st.write("**Initial Roster**")
     roster_selections = {}
     for p in players:
-        col1, col2 = st.columns([1, 2])
-        is_selected = col1.checkbox(p.player_name, key=f"add_p_{p.id}")
-        selected_deck = col2.selectbox(f"Deck for {p.player_name}", options=deck_options, format_func=deck_format, key=f"add_d_{p.id}", label_visibility="collapsed")
+        is_selected = st.checkbox(p.player_name, key=f"add_p_{p.id}")
         if is_selected:
-            roster_selections[p.id] = selected_deck.id if selected_deck else ""
+            roster_selections[p.id] = p.player_name
     
     submitted = st.form_submit_button("Add League")
     if submitted:
@@ -65,22 +61,46 @@ with st.form("add_league"):
             # Next round starts exactly one week later
             current_round_start += timedelta(days=7)
 
-        for pid, did in roster_selections.items():
-            client.add_player_to_league(new_league.id, pid, did)
+        for pid, p_name in roster_selections.items():
+            # Create a default deck for each player and add them to the league
+            default_deck = client.add_deck(deck_name=f"{p_name} deck")
+            client.add_player_to_league(new_league.id, pid, default_deck.id)
             
-        # Automatically generate Round Robin matches and assign to the first round
+        # Automatically generate Round Robin matches using the Circle Method to avoid double-playing
         player_ids = list(roster_selections.keys())
-        first_round_id = created_rounds[0].id if created_rounds else None
-        for p1_id, p2_id in combinations(player_ids, 2):
-            client.add_match(
-                player_a=p1_id,
-                player_b=p2_id,
-                round_id=first_round_id,
-                match_type="Round",
-                starting_player=None,
-                games=[{'winner': None}, {'winner': None}, {'winner': None}],
-                went_in_time=False
-            )
+        if len(player_ids) % 2 != 0:
+            player_ids.append(None) # Add a 'Bye' player if odd number of players
+
+        n = len(player_ids)
+        pairing_groups = []
+        temp_players = list(player_ids)
+
+        # Generate groups where each player plays once (or has a bye)
+        for _ in range(n - 1):
+            group = []
+            for i in range(n // 2):
+                p1, p2 = temp_players[i], temp_players[n - 1 - i]
+                if p1 is not None and p2 is not None:
+                    group.append((p1, p2))
+            pairing_groups.append(group)
+            # Rotate players: fixed the first one, shift the rest
+            temp_players = [temp_players[0]] + [temp_players[-1]] + temp_players[1:-1]
+
+        num_rounds = len(created_rounds)
+        if num_rounds > 0:
+            for g_idx, group in enumerate(pairing_groups):
+                # Distribute groups across the available league weeks
+                assigned_round = created_rounds[g_idx % num_rounds]
+                for p1_id, p2_id in group:
+                    client.add_match(
+                        player_a=p1_id,
+                        player_b=p2_id,
+                        round_id=assigned_round.id,
+                        match_type="Round",
+                        starting_player=None,
+                        games=[{'winner': None}, {'winner': None}, {'winner': None}],
+                        went_in_time=False
+                    )
         st.session_state.success_msg = f"Added League {nr}"
         st.rerun()
 

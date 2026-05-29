@@ -24,19 +24,18 @@ if not league_rounds:
     st.warning(f"No rounds found for League {selected_league.nr}.")
     st.stop()
 
-st.title(f"League {selected_league.nr} - Match Days")
-
-# Slider to select the round number
-min_round = league_rounds[0].nr
-max_round = league_rounds[-1].nr
-
-selected_round_nr = st.slider("Select Match Day", min_value=min_round, max_value=max_round, value=min_round)
+# Button-based navigation for selecting the Match Day
+selected_round_nr = st.segmented_control(
+    "Select Match Week",
+    options=[r.nr for r in league_rounds],
+    default=league_rounds[0].nr,
+    format_func=lambda x: f"Week {x}"
+)
 
 # Find the specific round object
 current_round = next((r for r in league_rounds if r.nr == selected_round_nr), None)
 
 if current_round:
-    st.subheader(f"Match Day {current_round.nr}")
     st.info(f"**Schedule:** {current_round.start_date} to {current_round.end_date}")
 
     # Fetch matches for this specific round
@@ -53,12 +52,10 @@ if current_round:
         for i, m in enumerate(round_matches, 1):
             name_a = player_map.get(m.player_a, "Unknown")
             name_b = player_map.get(m.player_b, "Unknown")
-            
+            match_summary = compute_match_summary(m)
+
             with st.expander(f"Match {i}: {name_a} vs {name_b}"):
-                # Helper to map codes to display names
-                
                 # Display current match standing
-                match_summary = compute_match_summary(m)
                 col1_summary, col2_summary, col3_summary = st.columns(3)
                 col1_summary.metric(name_a, match_summary['player_a_game_wins'])
                 col2_summary.write("vs")
