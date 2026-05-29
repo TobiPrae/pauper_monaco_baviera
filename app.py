@@ -48,12 +48,11 @@ st.divider()
 
 league = st.Page("pages/League.py", title="League")
 playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
-record_match = st.Page("pages/Record_Match.py", title="Record Match")
 edit_match = st.Page("pages/Edit_Match.py", title="Edit Match")
 player_management = st.Page("pages/Player_Management.py", title="Manage Players")
 league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
 deck_management = st.Page("pages/Deck_Management.py", title="Manage Decks")
 
-pg = st.navigation([league, playoffs, record_match, edit_match, player_management, deck_management, league_management])
+pg = st.navigation([league, playoffs, edit_match, player_management, deck_management, league_management])
 
 pg.run()

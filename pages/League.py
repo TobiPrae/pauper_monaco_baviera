@@ -9,10 +9,24 @@ require_auth()
 
 client = get_client()
 
-players = client.list_players()
-matches = client.list_matches()
+leagues = client.list_leagues()
+if not leagues:
+    st.info("No leagues found. Please create a league in League Management.")
+    st.stop()
 
-table = compute_standings(players, matches)
+leagues.sort(key=lambda x: x.nr, reverse=True)
+selected_league = st.sidebar.selectbox("Select League", leagues, format_func=lambda x: f"League {x.nr}")
+
+# Filter players and matches for the selected league
+all_matches = client.list_matches()
+league_matches = [m for m in all_matches if m.league_id == selected_league.id and getattr(m, 'match_type', 'Round') == 'Round']
+
+memberships = client.list_league_players(selected_league.id)
+member_ids = {m.player_id for m in memberships}
+all_players = client.list_players()
+league_players = [p for p in all_players if p.id in member_ids]
+
+table = compute_standings(league_players, league_matches)
 
 import pandas as pd
 if table:
@@ -42,7 +56,7 @@ if table:
     all_display_cols = ['Rank'] + list(col_mapping.values())
     default_cols = ['Rank', 'Player', 'Points+GWR','Total Matches']
 
-    st.subheader("Standings")
+    st.subheader(f"Standings - League {selected_league.nr}")
     selected_cols = st.multiselect("Select columns to display:", options=all_display_cols, default=default_cols)
 
     if selected_cols:

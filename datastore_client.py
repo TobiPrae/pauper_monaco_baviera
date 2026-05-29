@@ -256,7 +256,7 @@ class DatastoreClient:
         return self.league_players.pop(lp_id, None) is not None
 
     # --- Match methods ---
-    def add_match(self, player_a: str, player_b: str, league_id: str, starting_player: Optional[str], games: List[Dict], went_in_time: bool = False) -> Match:
+    def add_match(self, player_a: str, player_b: str, league_id: str, starting_player: Optional[str], games: List[Dict], went_in_time: bool = False, match_type: str = "Round") -> Match:
         if self.client:
             key = self.client.key("Match")
             entity = _datastore.Entity(key=key)
@@ -267,17 +267,18 @@ class DatastoreClient:
                 "starting_player": starting_player,
                 "games": games,
                 "went_in_time": went_in_time,
+                "match_type": match_type,
             })
             self.client.put(entity)
             mid = str(entity.key.id or entity.key.name)
             from models import Game as GameModel, Match as MatchModel
             game_objs = [GameModel(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
-            return MatchModel(id=mid, player_a=player_a, player_b=player_b, league_id=league_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time)
+            return MatchModel(id=mid, player_a=player_a, player_b=player_b, league_id=league_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
 
         mid = str(uuid.uuid4())
         from models import Game as GameModel, Match as MatchModel
         game_objs = [GameModel(game_index=i, winner=g.get("winner")) for i, g in enumerate(games, start=1)]
-        m = MatchModel(id=mid, player_a=player_a, player_b=player_b, league_id=league_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time)
+        m = MatchModel(id=mid, player_a=player_a, player_b=player_b, league_id=league_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
         self.matches[mid] = m
         return m
 
@@ -304,7 +305,8 @@ class DatastoreClient:
                 league_id=entity.get("league_id"),
                 starting_player=entity.get("starting_player"), 
                 games=game_objs, 
-                went_in_time=entity.get("went_in_time", False)
+                went_in_time=entity.get("went_in_time", False),
+                match_type=entity.get("match_type", "Round")
             )
 
         m = self.matches.get(mid)
@@ -341,7 +343,8 @@ class DatastoreClient:
                     league_id=e.get("league_id"),
                     starting_player=e.get("starting_player"), 
                     games=game_objs, 
-                    went_in_time=e.get("went_in_time", False)
+                    went_in_time=e.get("went_in_time", False),
+                    match_type=e.get("match_type", "Round")
                 ))
             return out
 

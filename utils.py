@@ -19,6 +19,8 @@ def compute_standings(players: List, matches: List[Match]) -> List[Dict]:
     for m in matches:
         from models import compute_match_summary
         summ = compute_match_summary(m)
+        if summ['total_games_played'] == 0:
+            continue
         a = m.player_a
         b = m.player_b
         stats[a]['points'] += summ['points_a']

@@ -13,16 +13,24 @@ if "success_msg" in st.session_state:
     st.success(st.session_state.success_msg)
     del st.session_state.success_msg
 
-matches = client.list_matches()
 players = client.list_players()
 leagues = client.list_leagues()
 player_map = {p.id: p.player_name for p in players}
 
+if not leagues:
+    st.warning("No leagues found. Please create one in League Management.")
+    st.stop()
+
+leagues.sort(key=lambda x: x.nr, reverse=True)
+selected_league_sb = st.sidebar.selectbox("Select League", leagues, format_func=lambda x: f"League {x.nr}", key="sb_league_edit")
+
+all_matches = client.list_matches()
+matches = [m for m in all_matches if m.league_id == selected_league_sb.id]
+
 if not matches:
-    st.info("No matches recorded yet.")
+    st.info(f"No matches recorded for League {selected_league_sb.nr} yet.")
 else:
-    sel = st.selectbox("Select match", [f"{m.id} - {player_map.get(m.player_a,'?')} vs {player_map.get(m.player_b,'?')}" for m in matches])
-    leagues.sort(key=lambda x: x.nr, reverse=True)
+    sel = st.selectbox("Select match to edit", [f"{m.id} - {player_map.get(m.player_a,'?')} vs {player_map.get(m.player_b,'?')}" for m in matches])
     mid = sel.split(" - ")[0]
     m = next((x for x in matches if x.id == mid), None)
     if m:
@@ -41,13 +49,9 @@ else:
             return None
 
         # League selection
-        league_index = 0
-        if leagues:
-            league_index = next((i for i, l in enumerate(leagues) if l.id == m.league_id), 0)
-            selected_league = st.selectbox("League", leagues, format_func=lambda x: f"League {x.nr}", index=league_index)
-        else:
-            st.warning("No leagues found. Please create one in League Management.")
-
+        current_league = next((l for l in leagues if l.id == m.league_id), None)
+        st.text_input("League", value=f"League {current_league.nr if current_league else 'Unknown'}", disabled=True)
+        
         g_opts = [None, name_a, name_b]
         g1 = st.selectbox("Game 1 winner", g_opts, index=(g_opts.index(winner_name(m.games[0].winner)) if len(m.games) >= 1 else 0))
         g2 = st.selectbox("Game 2 winner", g_opts, index=(g_opts.index(winner_name(m.games[1].winner)) if len(m.games) >= 2 else 0))
@@ -71,13 +75,19 @@ else:
                 {'winner': sel_to_code(g3)},
             ]
 
-            client.update_match(m.id, games=games_payload, starting_player=starting, went_in_time=went_in_time, league_id=selected_league.id if leagues else m.league_id)
+            client.update_match(
+                m.id, 
+                games=games_payload, 
+                starting_player=starting, 
+                went_in_time=went_in_time, 
+                match_type=getattr(m, 'match_type', 'Round')
+            )
             st.session_state.success_msg = "Match updated"
             st.rerun()
 
-        if st.button("Delete match"):
-            confirm = st.checkbox("Confirm delete? This cannot be undone.", key=f"confirm_match_{m.id}")
-            if confirm:
-                client.matches.pop(m.id, None)
-                st.success("Match deleted")
-                st.rerun()
+        #if st.button("Delete match"):
+        #    confirm = st.checkbox("Confirm delete? This cannot be undone.", key=f"confirm_match_{m.id}")
+        #    if confirm:
+        #        client.matches.pop(m.id, None)
+        #        st.success("Match deleted")
+        #        st.rerun()

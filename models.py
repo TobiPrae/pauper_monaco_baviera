@@ -27,6 +27,7 @@ class Match:
     starting_player: Optional[str] = None
     games: List[Game] = field(default_factory=list)
     went_in_time: bool = False
+    match_type: str = "Round" # "Round" or "PlayOffs"
 
 @dataclass
 class League:
