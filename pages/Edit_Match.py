@@ -25,7 +25,11 @@ leagues.sort(key=lambda x: x.nr, reverse=True)
 selected_league_sb = st.sidebar.selectbox("Select League", leagues, format_func=lambda x: f"League {x.nr}", key="sb_league_edit")
 
 all_matches = client.list_matches()
-matches = [m for m in all_matches if m.league_id == selected_league_sb.id]
+
+# Filter matches belonging to rounds of the selected league
+league_rounds = client.list_rounds(selected_league_sb.id)
+round_ids = {r.id for r in league_rounds}
+matches = [m for m in all_matches if getattr(m, 'round_id', None) in round_ids]
 
 if not matches:
     st.info(f"No matches recorded for League {selected_league_sb.nr} yet.")
@@ -48,10 +52,15 @@ else:
                 return name_b
             return None
 
-        # League selection
-        current_league = next((l for l in leagues if l.id == m.league_id), None)
-        st.text_input("League", value=f"League {current_league.nr if current_league else 'Unknown'}", disabled=True)
+        current_round = next((r for r in league_rounds if r.id == getattr(m, 'round_id', None)), None)
+        if current_round:
+            st.markdown(f"**Match Day {current_round.nr}** (League {selected_league_sb.nr})")
+            st.markdown(f"**Schedule:** {current_round.start_date} to {current_round.end_date}")
+        else:
+            st.markdown(f"**League {selected_league_sb.nr}** (Unknown Round)")
         
+        st.write("---")
+
         g_opts = [None, name_a, name_b]
         g1 = st.selectbox("Game 1 winner", g_opts, index=(g_opts.index(winner_name(m.games[0].winner)) if len(m.games) >= 1 else 0))
         g2 = st.selectbox("Game 2 winner", g_opts, index=(g_opts.index(winner_name(m.games[1].winner)) if len(m.games) >= 2 else 0))

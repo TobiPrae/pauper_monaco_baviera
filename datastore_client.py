@@ -2,7 +2,7 @@ import os
 import uuid
 import time
 from typing import Dict, List, Optional
-from models import Player, Match, Deck, League, LeaguePlayer
+from models import Player, Match, Deck, League, LeaguePlayer, Round
 
 # Choose backend: use real GCP Datastore if env indicates, otherwise in-memory fallback
 USE_GCP = os.environ.get("USE_GCP_DATASTORE") == "1" or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
@@ -26,6 +26,7 @@ class DatastoreClient:
             self.decks: Dict[str, Deck] = {}
             self.matches: Dict[str, Match] = {}
             self.leagues: Dict[str, League] = {}
+            self.rounds: Dict[str, Round] = {}
             self.league_players: Dict[str, LeaguePlayer] = {}
 
     # --- Player methods ---
@@ -206,6 +207,38 @@ class DatastoreClient:
 
         return self.leagues.pop(lid, None) is not None
 
+    # --- Round methods ---
+    def add_round(self, league_id: str, nr: int, start_date: str, end_date: str) -> Round:
+        if self.client:
+            key = self.client.key("Round")
+            entity = _datastore.Entity(key=key)
+            entity.update({
+                "league_id": league_id,
+                "nr": nr,
+                "start_date": start_date,
+                "end_date": end_date
+            })
+            self.client.put(entity)
+            rid = str(entity.key.id or entity.key.name)
+            return Round(id=rid, league_id=league_id, nr=nr, start_date=start_date, end_date=end_date)
+
+        rid = str(uuid.uuid4())
+        r = Round(id=rid, league_id=league_id, nr=nr, start_date=start_date, end_date=end_date)
+        self.rounds[rid] = r
+        return r
+
+    def list_rounds(self, league_id: Optional[str] = None) -> List[Round]:
+        if self.client:
+            query = self.client.query(kind="Round")
+            if league_id:
+                query.add_filter("league_id", "=", league_id)
+            res = list(query.fetch())
+            return [Round(id=str(e.key.id or e.key.name), league_id=e.get("league_id"), nr=e.get("nr"), start_date=e.get("start_date"), end_date=e.get("end_date")) for e in res]
+        
+        if league_id:
+            return [r for r in self.rounds.values() if r.league_id == league_id]
+        return list(self.rounds.values())
+
     # --- LeaguePlayer methods ---
     def add_player_to_league(self, league_id: str, player_id: str, deck_id: str) -> LeaguePlayer:
         if self.client:
@@ -256,14 +289,14 @@ class DatastoreClient:
         return self.league_players.pop(lp_id, None) is not None
 
     # --- Match methods ---
-    def add_match(self, player_a: str, player_b: str, league_id: str, starting_player: Optional[str], games: List[Dict], went_in_time: bool = False, match_type: str = "Round") -> Match:
+    def add_match(self, player_a: str, player_b: str, round_id: str, starting_player: Optional[str], games: List[Dict], went_in_time: bool = False, match_type: str = "Round") -> Match:
         if self.client:
             key = self.client.key("Match")
             entity = _datastore.Entity(key=key)
             entity.update({
                 "player_a": player_a,
                 "player_b": player_b,
-                "league_id": league_id,
+                "round_id": round_id,
                 "starting_player": starting_player,
                 "games": games,
                 "went_in_time": went_in_time,
@@ -273,12 +306,12 @@ class DatastoreClient:
             mid = str(entity.key.id or entity.key.name)
             from models import Game as GameModel, Match as MatchModel
             game_objs = [GameModel(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
-            return MatchModel(id=mid, player_a=player_a, player_b=player_b, league_id=league_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
+            return MatchModel(id=mid, player_a=player_a, player_b=player_b, round_id=round_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
 
         mid = str(uuid.uuid4())
         from models import Game as GameModel, Match as MatchModel
         game_objs = [GameModel(game_index=i, winner=g.get("winner")) for i, g in enumerate(games, start=1)]
-        m = MatchModel(id=mid, player_a=player_a, player_b=player_b, league_id=league_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
+        m = MatchModel(id=mid, player_a=player_a, player_b=player_b, round_id=round_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
         self.matches[mid] = m
         return m
 
@@ -302,7 +335,7 @@ class DatastoreClient:
                 id=str(entity.key.id or entity.key.name), 
                 player_a=entity.get("player_a"), 
                 player_b=entity.get("player_b"), 
-                league_id=entity.get("league_id"),
+                round_id=entity.get("round_id"),
                 starting_player=entity.get("starting_player"), 
                 games=game_objs, 
                 went_in_time=entity.get("went_in_time", False),
@@ -340,7 +373,7 @@ class DatastoreClient:
                     id=mid, 
                     player_a=e.get("player_a"), 
                     player_b=e.get("player_b"), 
-                    league_id=e.get("league_id"),
+                    round_id=e.get("round_id"),
                     starting_player=e.get("starting_player"), 
                     games=game_objs, 
                     went_in_time=e.get("went_in_time", False),

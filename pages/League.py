@@ -18,8 +18,10 @@ leagues.sort(key=lambda x: x.nr, reverse=True)
 selected_league = st.sidebar.selectbox("Select League", leagues, format_func=lambda x: f"League {x.nr}")
 
 # Filter players and matches for the selected league
+league_rounds = client.list_rounds(selected_league.id)
+round_ids = {r.id for r in league_rounds}
 all_matches = client.list_matches()
-league_matches = [m for m in all_matches if m.league_id == selected_league.id and getattr(m, 'match_type', 'Round') == 'Round']
+league_matches = [m for m in all_matches if getattr(m, 'round_id', None) in round_ids and getattr(m, 'match_type', 'Round') == 'Round']
 
 memberships = client.list_league_players(selected_league.id)
 member_ids = {m.player_id for m in memberships}

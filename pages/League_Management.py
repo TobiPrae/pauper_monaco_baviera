@@ -48,16 +48,34 @@ with st.form("add_league"):
             weeks_playoffs=weeks_playoffs,
             end_date=calc_end.strftime('%Y-%m-%d')
         )
+
+        # Automatically generate Rounds based on weeks_rounds
+        created_rounds = []
+        current_round_start = start_date
+        for i in range(1, weeks_rounds + 1):
+            # A round lasts 7 days (e.g., Mon to Sun)
+            round_end = current_round_start + timedelta(days=6)
+            new_round = client.add_round(
+                league_id=new_league.id,
+                nr=i,
+                start_date=current_round_start.strftime('%Y-%m-%d'),
+                end_date=round_end.strftime('%Y-%m-%d')
+            )
+            created_rounds.append(new_round)
+            # Next round starts exactly one week later
+            current_round_start += timedelta(days=7)
+
         for pid, did in roster_selections.items():
             client.add_player_to_league(new_league.id, pid, did)
             
-        # Automatically generate Round Robin matches
+        # Automatically generate Round Robin matches and assign to the first round
         player_ids = list(roster_selections.keys())
+        first_round_id = created_rounds[0].id if created_rounds else None
         for p1_id, p2_id in combinations(player_ids, 2):
             client.add_match(
                 player_a=p1_id,
                 player_b=p2_id,
-                league_id=new_league.id,
+                round_id=first_round_id,
                 match_type="Round",
                 starting_player=None,
                 games=[{'winner': None}, {'winner': None}, {'winner': None}],
