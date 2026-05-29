@@ -52,88 +52,88 @@ with st.form("add_league"):
         st.session_state.success_msg = f"Added League {nr}"
         st.rerun()
 
-st.subheader("Edit Leagues")
-leagues = client.list_leagues()
-leagues.sort(key=lambda x: x.nr, reverse=True)
+with st.expander("Edit Leagues", expanded=False):
+    leagues = client.list_leagues()
+    leagues.sort(key=lambda x: x.nr, reverse=True)
 
-if not leagues:
-    st.info("No leagues found. Add leagues above.")
-else:
-    selected_league = st.selectbox(
-        "Select a league to modify",
-        options=leagues,
-        format_func=lambda x: f"League {x.nr}"
-    )
+    if not leagues:
+        st.info("No leagues found. Add leagues above.")
+    else:
+        selected_league = st.selectbox(
+            "Select a league to modify",
+            options=leagues,
+            format_func=lambda x: f"League {x.nr}"
+        )
 
-    if selected_league:
-        current_memberships = client.list_league_players(selected_league.id)
-        member_ids = {m.player_id for m in current_memberships}
-        membership_map = {m.player_id: m for m in current_memberships}
-        default_players = [p for p in players if p.id in member_ids]
+        if selected_league:
+            current_memberships = client.list_league_players(selected_league.id)
+            member_ids = {m.player_id for m in current_memberships}
+            membership_map = {m.player_id: m for m in current_memberships}
+            default_players = [p for p in players if p.id in member_ids]
 
-        with st.form(key=f"edit_league_form_{selected_league.id}"):
-            new_nr = st.number_input("League Number", value=selected_league.nr, min_value=1, step=1)
-            
-            try:
-                curr_start = datetime.strptime(selected_league.start_date, '%Y-%m-%d')
-                curr_end = datetime.strptime(selected_league.end_date, '%Y-%m-%d')
-            except:
-                curr_start = datetime.now()
-                curr_end = datetime.now()
-
-            new_start = st.date_input("Start Date", value=curr_start, key=f"edit_start_{selected_league.id}")
-            new_weeks_rounds = st.number_input("Weeks for Rounds", value=getattr(selected_league, 'weeks_rounds', 6), min_value=1, step=1, key=f"edit_wr_{selected_league.id}")
-            new_weeks_playoffs = st.number_input("Weeks for Playoffs", value=getattr(selected_league, 'weeks_playoffs', 2), min_value=1, step=1, key=f"edit_wp_{selected_league.id}")
-            
-            st.write("---")
-            st.write("**Manage Roster & Decks**")
-            updated_roster = {}
-            for p in players:
-                col1, col2 = st.columns([1, 2])
-                in_league = col1.checkbox(p.player_name, value=(p.id in member_ids), key=f"edit_p_{p.id}")
+            with st.form(key=f"edit_league_form_{selected_league.id}"):
+                new_nr = st.number_input("League Number", value=selected_league.nr, min_value=1, step=1)
                 
-                # Determine default deck index
-                current_deck_id = membership_map[p.id].deck_id if p.id in member_ids else ""
-                default_deck_idx = next((i for i, d in enumerate(deck_options) if d and d.id == current_deck_id), 0)
-                
-                sel_deck = col2.selectbox(f"Deck for {p.player_name}", options=deck_options, index=default_deck_idx, format_func=deck_format, key=f"edit_d_{p.id}", label_visibility="collapsed")
-                if in_league: updated_roster[p.id] = sel_deck.id if sel_deck else ""
+                try:
+                    curr_start = datetime.strptime(selected_league.start_date, '%Y-%m-%d')
+                    curr_end = datetime.strptime(selected_league.end_date, '%Y-%m-%d')
+                except:
+                    curr_start = datetime.now()
+                    curr_end = datetime.now()
 
-            rr_closed = st.checkbox("Round Robin Closed", value=selected_league.round_robin_closed)
-            po_closed = st.checkbox("Playoffs Closed", value=selected_league.playoffs_closed)
-            
-            save = st.form_submit_button("Save Changes")
-            #delete = st.form_submit_button("Delete League")
-            
-            if save:
-                calc_end = new_start + timedelta(weeks=new_weeks_rounds + new_weeks_playoffs)
-                client.update_league(
-                    selected_league.id,
-                    nr=new_nr,
-                    start_date=new_start.strftime('%Y-%m-%d'),
-                    weeks_rounds=new_weeks_rounds,
-                    weeks_playoffs=new_weeks_playoffs,
-                    end_date=calc_end.strftime('%Y-%m-%d'),
-                    round_robin_closed=rr_closed,
-                    playoffs_closed=po_closed
-                )
+                new_start = st.date_input("Start Date", value=curr_start, key=f"edit_start_{selected_league.id}")
+                new_weeks_rounds = st.number_input("Weeks for Rounds", value=getattr(selected_league, 'weeks_rounds', 6), min_value=1, step=1, key=f"edit_wr_{selected_league.id}")
+                new_weeks_playoffs = st.number_input("Weeks for Playoffs", value=getattr(selected_league, 'weeks_playoffs', 2), min_value=1, step=1, key=f"edit_wp_{selected_league.id}")
                 
-                # Remove players no longer selected
-                for lp in current_memberships:
-                    if lp.player_id not in updated_roster:
-                        client.remove_player_from_league(lp.id)
-                
-                # Add or update players
-                for pid, did in updated_roster.items():
-                    if pid not in member_ids:
-                        client.add_player_to_league(selected_league.id, pid, did)
-                    else:
-                        # Update deck if it changed
-                        if membership_map[pid].deck_id != did:
-                            client.update_league_player(membership_map[pid].id, deck_id=did)
+                st.write("---")
+                st.write("**Manage Roster & Decks**")
+                updated_roster = {}
+                for p in players:
+                    col1, col2 = st.columns([1, 2])
+                    in_league = col1.checkbox(p.player_name, value=(p.id in member_ids), key=f"edit_p_{p.id}")
+                    
+                    # Determine default deck index
+                    current_deck_id = membership_map[p.id].deck_id if p.id in member_ids else ""
+                    default_deck_idx = next((i for i, d in enumerate(deck_options) if d and d.id == current_deck_id), 0)
+                    
+                    sel_deck = col2.selectbox(f"Deck for {p.player_name}", options=deck_options, index=default_deck_idx, format_func=deck_format, key=f"edit_d_{p.id}", label_visibility="collapsed")
+                    if in_league: updated_roster[p.id] = sel_deck.id if sel_deck else ""
 
-                st.session_state.success_msg = "League updated"
-                st.rerun()
+                rr_closed = st.checkbox("Round Robin Closed", value=selected_league.round_robin_closed)
+                po_closed = st.checkbox("Playoffs Closed", value=selected_league.playoffs_closed)
+                
+                save = st.form_submit_button("Save Changes")
+                #delete = st.form_submit_button("Delete League")
+                
+                if save:
+                    calc_end = new_start + timedelta(weeks=new_weeks_rounds + new_weeks_playoffs)
+                    client.update_league(
+                        selected_league.id,
+                        nr=new_nr,
+                        start_date=new_start.strftime('%Y-%m-%d'),
+                        weeks_rounds=new_weeks_rounds,
+                        weeks_playoffs=new_weeks_playoffs,
+                        end_date=calc_end.strftime('%Y-%m-%d'),
+                        round_robin_closed=rr_closed,
+                        playoffs_closed=po_closed
+                    )
+                    
+                    # Remove players no longer selected
+                    for lp in current_memberships:
+                        if lp.player_id not in updated_roster:
+                            client.remove_player_from_league(lp.id)
+                    
+                    # Add or update players
+                    for pid, did in updated_roster.items():
+                        if pid not in member_ids:
+                            client.add_player_to_league(selected_league.id, pid, did)
+                        else:
+                            # Update deck if it changed
+                            if membership_map[pid].deck_id != did:
+                                client.update_league_player(membership_map[pid].id, deck_id=did)
+
+                    st.session_state.success_msg = "League updated"
+                    st.rerun()
             
             #if delete:
             #    confirm = st.checkbox("Confirm delete? This cannot be undone.", key=f"confirm_l_{selected_league.id}")
