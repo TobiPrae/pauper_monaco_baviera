@@ -13,18 +13,18 @@ if "success_msg" in st.session_state:
     st.success(st.session_state.success_msg)
     del st.session_state.success_msg
 
-st.subheader("Add Deck")
-with st.form("add_deck"):
-    name = st.text_input("Deck name", key="add_deck_name")
-    link = st.text_input("Deck list link (URL)", key="add_deck_link")
-    submitted = st.form_submit_button("Add Deck")
-    if submitted:
-        if not name:
-            st.error("Deck name is required")
-        else:
-            d = client.add_deck(deck_name=name, deck_list_link=link)
-            st.session_state.success_msg = f"Added {d.deck_name}"
-            st.rerun()
+#st.subheader("Add Deck")
+#with st.form("add_deck"):
+#    name = st.text_input("Deck name", key="add_deck_name")
+#    link = st.text_input("Deck list link (URL)", key="add_deck_link")
+#    submitted = st.form_submit_button("Add Deck")
+#    if submitted:
+#        if not name:
+#            st.error("Deck name is required")
+#        else:
+#            d = client.add_deck(deck_name=name, deck_list_link=link)
+#            st.session_state.success_msg = f"Added {d.deck_name}"
+#            st.rerun()
 
 
 with st.expander("Edit Decks", expanded=False):

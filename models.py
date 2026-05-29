@@ -23,10 +23,21 @@ class Match:
     id: str
     player_a: str
     player_b: str
-    league_id: str
+    round_id: int = None
+    start_date: str = None
+    end_date: str = None
     starting_player: Optional[str] = None
     games: List[Game] = field(default_factory=list)
     went_in_time: bool = False
+    match_type: str = "Round" # "Round" or "PlayOffs"
+
+@dataclass
+class Round:
+    id: str
+    nr: int
+    start_date: str
+    end_date: str
+    league_id: str
 
 @dataclass
 class League:
