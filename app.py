@@ -12,12 +12,10 @@ st.set_page_config(
 
 load_dotenv()
 
-# Ensure session auth flag exists
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+# Unified authentication check
+require_auth()
 
-if not st.session_state.authenticated:
-    require_auth()
+is_admin = st.session_state.user.is_admin if st.session_state.user else False
 
 # This places the image at the top of the sidebar
 #st.sidebar.image("assets/logo.png", use_container_width=True)
@@ -46,6 +44,13 @@ st.markdown(
 
 st.divider()
 
+# Sidebar User Info and Logout
+with st.sidebar:
+    st.caption(f"👤 Logged in as: **{st.session_state.user.username}**")
+    if st.button("Logout", use_container_width=True, type="secondary"):
+        st.session_state.user = None
+        st.rerun()
+
 league = st.Page("pages/League.py", title="League")
 round_view = st.Page("pages/Round_View.py", title="Match Day")
 playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
@@ -53,6 +58,13 @@ player_management = st.Page("pages/Player_Management.py", title="Manage Players"
 league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
 deck_management = st.Page("pages/Deck_Management.py", title="Manage Decks")
 
-pg = st.navigation([league, round_view, playoffs, player_management, deck_management, league_management])
+# Build navigation based on roles
+pages = [league, round_view, deck_management, playoffs]
+if is_admin:
+    pages.extend([player_management, league_management])
+
+pg = st.navigation(pages)
+
+
 
 pg.run()

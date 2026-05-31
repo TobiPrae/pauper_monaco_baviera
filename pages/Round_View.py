@@ -42,17 +42,20 @@ if current_round:
     all_matches = client.list_matches()
     round_matches = [m for m in all_matches if getattr(m, 'round_id', None) == current_round.id]
     
-    # Get player mapping for names
-    players = client.list_players()
-    player_map = {p.id: p.player_name for p in players}
+    # Get user mapping for names
+    users = client.list_users()
+    user_map = {u.id: u.username for u in users}
 
     if not round_matches:
         st.write("No matches scheduled for this round.")
     else:
         for i, m in enumerate(round_matches, 1):
-            name_a = player_map.get(m.player_a, "Unknown")
-            name_b = player_map.get(m.player_b, "Unknown")
+            name_a = user_map.get(m.player_a, "Unknown")
+            name_b = user_map.get(m.player_b, "Unknown")
             match_summary = compute_match_summary(m)
+            
+            # Authorization check: Admin or one of the two players
+            can_edit = st.session_state.user.is_admin or st.session_state.user.id in [m.player_a, m.player_b]
 
             # If starting player is None, the game hasn't started/recorded yet (Red). 
             # Otherwise, it's considered in progress or finished (Green).
@@ -89,28 +92,29 @@ if current_round:
                 
                 # Match input fields
                 c1, c2, c3 = st.columns(3)
-                g1_winner = c1.selectbox("Game 1 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[0].winner if len(m.games) >= 1 else None)), key=f"g1_{m.id}")
-                g2_winner = c2.selectbox("Game 2 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[1].winner if len(m.games) >= 1 else None)), key=f"g2_{m.id}")
-                g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}")
+                g1_winner = c1.selectbox("Game 1 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[0].winner if len(m.games) >= 1 else None)), key=f"g1_{m.id}", disabled=not can_edit)
+                g2_winner = c2.selectbox("Game 2 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[1].winner if len(m.games) >= 1 else None)), key=f"g2_{m.id}", disabled=not can_edit)
+                g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}", disabled=not can_edit)
 
                 cs, ct = st.columns(2)
                 start_opts = [None, name_a, name_b]
-                starting_player = cs.selectbox("Starting player", start_opts, index=(start_opts.index(m.starting_player) if m.starting_player in start_opts else 0), key=f"start_{m.id}")
-                went_in_time = ct.checkbox("Went in time", value=bool(m.went_in_time), key=f"time_{m.id}")
+                starting_player = cs.selectbox("Starting player", start_opts, index=(start_opts.index(m.starting_player) if m.starting_player in start_opts else 0), key=f"start_{m.id}", disabled=not can_edit)
+                went_in_time = ct.checkbox("Went in time", value=bool(m.went_in_time), key=f"time_{m.id}", disabled=not can_edit)
 
-                if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
-                    games_payload = [
-                        {'winner': name_to_code(g1_winner)},
-                        {'winner': name_to_code(g2_winner)},
-                        {'winner': name_to_code(g3_winner)},
-                    ]
-                    
-                    client.update_match(
-                        m.id,
-                        games=games_payload,
-                        starting_player=starting_player,
-                        went_in_time=went_in_time,
-                        match_type=getattr(m, 'match_type', 'Round')
-                    )
-                    st.toast(f"Result for {name_a} vs {name_b} saved!")
-                    st.rerun()
+                if can_edit:
+                    if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
+                        games_payload = [
+                            {'winner': name_to_code(g1_winner)},
+                            {'winner': name_to_code(g2_winner)},
+                            {'winner': name_to_code(g3_winner)},
+                        ]
+                        
+                        client.update_match(
+                            m.id,
+                            games=games_payload,
+                            starting_player=starting_player,
+                            went_in_time=went_in_time,
+                            match_type=getattr(m, 'match_type', 'Round')
+                        )
+                        st.toast(f"Result for {name_a} vs {name_b} saved!")
+                        st.rerun()

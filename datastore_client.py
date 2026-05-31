@@ -1,8 +1,9 @@
 import os
 import uuid
 import time
+import json
 from typing import Dict, List, Optional
-from models import Player, Match, Deck, League, LeaguePlayer, Round
+from models import User, Match, Deck, League, LeaguePlayer, Round, Game
 
 # Choose backend: use real GCP Datastore if env indicates, otherwise in-memory fallback
 USE_GCP = os.environ.get("USE_GCP_DATASTORE") == "1" or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
@@ -22,76 +23,146 @@ class DatastoreClient:
             self.client = _datastore.Client()
         else:
             self.client = None
-            self.players: Dict[str, Player] = {}
+            self.users: Dict[str, User] = {}
+            self.local_file = "local_datastore.json"
+            self._load_local_data()
             self.decks: Dict[str, Deck] = {}
             self.matches: Dict[str, Match] = {}
             self.leagues: Dict[str, League] = {}
             self.rounds: Dict[str, Round] = {}
             self.league_players: Dict[str, LeaguePlayer] = {}
 
-    # --- Player methods ---
-    def add_player(self, player_name: str) -> Player:
+    def _load_local_data(self):
+        """Loads data from a local JSON file if it exists."""
+        if os.path.exists(self.local_file):
+            try:
+                with open(self.local_file, "r") as f:
+                    data = json.load(f)
+                    # Helper to restore User objects
+                    for u in data.get("users", []):
+                        self.users[u["id"]] = User(**u)
+                    # Restore other entities
+                    for d in data.get("decks", []):
+                        self.decks[d["id"]] = Deck(**d)
+                    for l in data.get("leagues", []):
+                        self.leagues[l["id"]] = League(**l)
+                    for r in data.get("rounds", []):
+                        self.rounds[r["id"]] = Round(**r)
+                    for lp in data.get("league_players", []):
+                        self.league_players[lp["id"]] = LeaguePlayer(**lp)
+                    for m in data.get("matches", []):
+                        # Matches need special handling for the list of Game objects
+                        games_data = m.pop("games", [])
+                        game_objs = [Game(**g) for g in games_data]
+                        self.matches[m["id"]] = Match(games=game_objs, **m)
+            except Exception as e:
+                print(f"Warning: Could not load local data: {e}")
+
+    def _save_local_data(self):
+        """Saves current in-memory state to a local JSON file."""
+        if not self.client:
+            try:
+                # Helper to convert objects to dicts, handling nested Game objects in Matches
+                def match_to_dict(m):
+                    d = vars(m).copy()
+                    d["games"] = [vars(g) for g in m.games]
+                    return d
+
+                data = {
+                    "users": [vars(u) for u in self.users.values()],
+                    "decks": [vars(d) for d in self.decks.values()],
+                    "leagues": [vars(l) for l in self.leagues.values()],
+                    "rounds": [vars(r) for r in self.rounds.values()],
+                    "league_players": [vars(lp) for lp in self.league_players.values()],
+                    "matches": [match_to_dict(m) for m in self.matches.values()]
+                }
+                with open(self.local_file, "w") as f:
+                    json.dump(data, f, indent=4)
+            except Exception as e:
+                print(f"Warning: Could not save local data: {e}")
+
+    # --- User methods ---
+    def create_user(self, user: User) -> User:
+        """Used primarily by scripts and admin functions to save a User object."""
         if self.client:
-            key = self.client.key("Player")
+            key = self.client.key("User", user.id)
             entity = _datastore.Entity(key=key)
-            entity.update({"player_name": player_name})
+            entity.update(vars(user))
             self.client.put(entity)
-            pid = str(entity.key.id or entity.key.name)
-            return Player(id=pid, player_name=player_name)
+            return user
+        
+        self.users[user.id] = user
+        self._save_local_data()
+        return user
 
-        pid = str(uuid.uuid4())
-        p = Player(id=pid, player_name=player_name)
-        self.players[pid] = p
-        return p
+    def add_user(self, username: str, email: str, password_hash: str, is_admin: bool = False) -> User:
+        uid = str(uuid.uuid4())
+        u = User(id=uid, username=username, email=email, password_hash=password_hash, is_admin=is_admin)
+        return self.create_user(u)
 
-    def update_player(self, pid: str, **fields) -> Optional[Player]:
+    def update_user(self, uid: str, **fields) -> Optional[User]:
         if self.client:
             # naive implementation: fetch by id
             try:
-                key = self.client.key("Player", int(pid))
+                key = self.client.key("User", int(uid))
             except Exception:
-                key = self.client.key("Player", pid)
+                key = self.client.key("User", uid)
             entity = self.client.get(key)
             if not entity:
                 return None
             for k, v in fields.items():
                 entity[k] = v
             self.client.put(entity)
-            return Player(id=str(entity.key.id or entity.key.name), player_name=entity.get("player_name"))
+            return User(
+                id=str(entity.key.id or entity.key.name), 
+                username=entity.get("username"),
+                email=entity.get("email"),
+                password_hash=entity.get("password_hash"),
+                is_admin=entity.get("is_admin", False)
+            )
 
-        p = self.players.get(pid)
-        if not p:
+        u = self.users.get(uid)
+        if not u:
             return None
         for k, v in fields.items():
-            if hasattr(p, k):
-                setattr(p, k, v)
-        return p
+            if hasattr(u, k):
+                setattr(u, k, v)
+        return u
 
-    def delete_player(self, pid: str) -> bool:
+    def delete_user(self, uid: str) -> bool:
         if self.client:
             try:
-                key = self.client.key("Player", int(pid))
+                key = self.client.key("User", int(uid))
             except Exception:
-                key = self.client.key("Player", pid)
+                key = self.client.key("User", uid)
             try:
                 self.client.delete(key)
                 return True
             except Exception:
                 return False
 
-        return self.players.pop(pid, None) is not None
+        return self.users.pop(uid, None) is not None
 
-    def list_players(self) -> List[Player]:
+    def list_users(self) -> List[User]:
         if self.client:
-            query = self.client.query(kind="Player")
+            query = self.client.query(kind="User")
             res = list(query.fetch())
             out = []
             for e in res:
-                pid = str(e.key.id or e.key.name)
-                out.append(Player(id=pid, player_name=e.get("player_name")))
+                uid = str(e.key.id or e.key.name)
+                out.append(User(
+                    id=uid, 
+                    username=e.get("username"),
+                    email=e.get("email"),
+                    password_hash=e.get("password_hash"),
+                    is_admin=e.get("is_admin", False)
+                ))
             return out
 
-        return list(self.players.values())
+        return list(self.users.values())
+
+    # Backward compatibility aliases
+    list_players = list_users
 
     # --- Deck methods ---
     def add_deck(self, deck_name: str, deck_list_link: Optional[str] = None) -> Deck:
@@ -240,17 +311,17 @@ class DatastoreClient:
         return list(self.rounds.values())
 
     # --- LeaguePlayer methods ---
-    def add_player_to_league(self, league_id: str, player_id: str, deck_id: str) -> LeaguePlayer:
+    def add_user_to_league(self, league_id: str, user_id: str, deck_id: str) -> LeaguePlayer:
         if self.client:
             key = self.client.key("LeaguePlayer")
             entity = _datastore.Entity(key=key)
-            entity.update({"league_id": league_id, "player_id": player_id, "deck_id": deck_id})
+            entity.update({"league_id": league_id, "user_id": user_id, "deck_id": deck_id})
             self.client.put(entity)
             lpid = str(entity.key.id or entity.key.name)
-            return LeaguePlayer(id=lpid, league_id=league_id, player_id=player_id, deck_id=deck_id)
+            return LeaguePlayer(id=lpid, league_id=league_id, user_id=user_id, deck_id=deck_id)
 
         lpid = str(uuid.uuid4())
-        lp = LeaguePlayer(id=lpid, league_id=league_id, player_id=player_id, deck_id=deck_id)
+        lp = LeaguePlayer(id=lpid, league_id=league_id, user_id=user_id, deck_id=deck_id)
         self.league_players[lpid] = lp
         return lp
 
@@ -260,7 +331,7 @@ class DatastoreClient:
             if league_id:
                 query.add_filter("league_id", "=", league_id)
             res = list(query.fetch())
-            return [LeaguePlayer(id=str(e.key.id or e.key.name), league_id=e.get("league_id"), player_id=e.get("player_id"), deck_id=e.get("deck_id")) for e in res]
+            return [LeaguePlayer(id=str(e.key.id or e.key.name), league_id=e.get("league_id"), user_id=e.get("user_id"), deck_id=e.get("deck_id")) for e in res]
         
         if league_id:
             return [lp for lp in self.league_players.values() if lp.league_id == league_id]

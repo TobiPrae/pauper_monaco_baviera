@@ -52,7 +52,7 @@ def compute_standings(players: List, matches: List[Match]) -> List[Dict]:
         primary_metric = s['points'] + gw_rate
         table.append({
             'player_id': pid,
-            'player_name': s['player'].player_name,
+            'player_name': s['player'].username,
             'points': s['points'],
             'points_plus': primary_metric,
             'match_wins': s['match_wins'],

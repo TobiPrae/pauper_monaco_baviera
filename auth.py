@@ -27,41 +27,51 @@ def check_password(plain: str, stored: str) -> bool:
 def require_auth():
     """Require authentication before accessing the page. Must be called at the top of each page (before st.set_page_config)."""
     import streamlit as st
-    from dotenv import load_dotenv
-    
-    load_dotenv()
+    from datastore_client import get_client
     
     # Initialize session state
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
+    if "user" not in st.session_state:
+        st.session_state.user = None
     
     # If not authenticated, show login and stop execution
-    if not st.session_state.authenticated:
+    if st.session_state.user is None:
         st.image("assets/logo.png", width="stretch")
         
         def check_login():
             """Callback für Login-Check (Enter oder Button)"""
+            username = st.session_state.login_username
             pwd = st.session_state.login_password
-            env_hash = os.environ.get("STREAMLIT_PASSWORD_HASH")
-            env_plain = os.environ.get("STREAMLIT_PASSWORD")
             
-            valid = False
-            if env_hash:
-                valid = check_password(pwd, env_hash)
-            elif env_plain:
-                valid = (pwd == env_plain)
-            else:
-                st.error("❌ Password not configured. Set STREAMLIT_PASSWORD or STREAMLIT_PASSWORD_HASH as environment variable.")
-                st.stop()
+            client = get_client()
+            users = client.list_users()
             
-            if valid:
-                st.session_state.authenticated = True
+            # Find user by username
+            user = next((u for u in users if u.username == username), None)
+            
+            if user and check_password(pwd, user.password_hash):
+                st.session_state.user = user
+                # Clear sensitive temporary state
+                del st.session_state.login_password
             else:
-                st.error("❌ Incorrect password!")
+                st.error("❌ Invalid username or password!")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.text_input("Speak, friend, and enter.", type="password", key="login_password", on_change=check_login)
+            st.text_input("Username", key="login_username")
+            st.text_input(
+                "Speak, friend, and enter.", 
+                type="password", 
+                key="login_password", 
+                on_change=check_login
+            )
             st.button("Mellon", use_container_width=True, on_click=check_login)
         
         st.stop()  # Stop execution if not authenticated
+
+def require_admin():
+    """Require admin privileges. Calls require_auth() first."""
+    require_auth()
+    import streamlit as st
+    if not st.session_state.user.is_admin:
+        st.error("⛔ Access Denied: Administrator privileges required.")
+        st.stop()

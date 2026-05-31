@@ -24,16 +24,16 @@ all_matches = client.list_matches()
 league_matches = [m for m in all_matches if getattr(m, 'round_id', None) in round_ids and getattr(m, 'match_type', 'Round') == 'Round']
 
 memberships = client.list_league_players(selected_league.id)
-member_ids = {m.player_id for m in memberships}
-all_players = client.list_players()
-league_players = [p for p in all_players if p.id in member_ids]
+member_ids = {m.user_id for m in memberships}
+all_users = client.list_users()
+league_players = [u for u in all_users if u.id in member_ids]
 
 table = compute_standings(league_players, league_matches)
 
 # Informationen über Decks aus den League-Mitgliedschaften hinzufügen
 all_decks = client.list_decks()
 deck_lookup = {d.id: d for d in all_decks}
-player_to_deck = {m.player_id: deck_lookup.get(m.deck_id) for m in memberships}
+player_to_deck = {m.user_id: deck_lookup.get(m.deck_id) for m in memberships}
 
 for row in table:
     deck = player_to_deck.get(row['player_id'])
