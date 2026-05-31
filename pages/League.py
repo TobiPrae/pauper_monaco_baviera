@@ -67,8 +67,18 @@ if table:
     df = df.rename(columns=col_mapping)
 
     # Configuration for dynamic columns
+    # Detect if the user is on a mobile device using the User-Agent header
+    ua = st.context.headers.get("User-Agent", "")
+    is_mobile = any(x in ua for x in ["Mobile", "Android", "iPhone", "iPad"])
+
     all_display_cols = ['Rank'] + list(col_mapping.values())
-    default_cols = ['Rank', 'Player', 'Deck', 'Points+GWR','Total Matches']
+    
+    if is_mobile:
+        # Show a compact view for mobile users
+        default_cols = ['Rank', 'Player', 'Points+GWR', 'Total Matches']
+    else:
+        # Show a more detailed view for desktop users
+        default_cols = ['Rank', 'Player', 'Points+GWR', 'Total Matches', 'Deck', 'Decklist']
 
     selected_cols = st.multiselect("Select columns to display:", options=all_display_cols, default=default_cols)
 
@@ -84,9 +94,9 @@ if table:
 
     # Top-n playoffs control
     max_top = len(df)
-    top_n = st.number_input("Top N playoffs", min_value=2, max_value=max_top, value=min(4, max_top), step=1)
+    top_n = st.number_input("Top N Player Playoffs", min_value=2, max_value=max_top, value=min(4, max_top), step=1)
     st.caption("Playoff seeding: best vs worst, 2nd best vs 2nd worst, etc.")
-    if st.button("Generate bracket"):
+    if st.button("Generate Bracket"):
         bracket = seed_playoff(table, top_n)
         pairs = bracket.get('pairs', [])
         bye = bracket.get('bye')

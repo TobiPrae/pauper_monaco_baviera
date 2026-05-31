@@ -54,7 +54,10 @@ if current_round:
             name_b = player_map.get(m.player_b, "Unknown")
             match_summary = compute_match_summary(m)
 
-            with st.expander(f"Match {i}: {name_a} vs {name_b}"):
+            # If starting player is None, the game hasn't started/recorded yet (Red). 
+            # Otherwise, it's considered in progress or finished (Green).
+            status_flag = "🔴" if m.starting_player is None and m.games[0].winner is None and m.games[1].winner is None and m.games[2].winner is None else "🟢"
+            with st.expander(f"{status_flag} Match {i}: {name_a} vs {name_b}"):
                 # Display current match standing
                 col1_summary, col2_summary, col3_summary = st.columns(3)
                 col1_summary.metric(name_a, match_summary['player_a_game_wins'])
