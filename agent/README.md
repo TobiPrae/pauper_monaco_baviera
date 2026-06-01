@@ -21,3 +21,5 @@ python -m agent.indexer .
 - To propose a change, the assistant should produce a unified diff (via `handlers.propose_patch`) and call `git_workflow.write_patch` to write it locally. The user must approve before applying.
 
 Provider-agnostic: pair this code with the `AGENT_PROMPT.md` prompt to instantiate the assistant in any LLM/chat UI.
+
+The agent prompt is available at `agent/AGENT_PROMPT.md` in this repository. Drop that file into your assistant's system prompt or paste its contents when instantiating a provider-agnostic developer assistant.

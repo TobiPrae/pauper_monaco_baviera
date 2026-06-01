@@ -1,3 +1,5 @@
+
+Use this file as the system/user prompt when instantiating an assistant for repository development tasks. It is intentionally provider-agnostic and focused on reproducible, consent-first workflows.
 # Repo-Aware Developer Assistant Prompt (Provider-Agnostic)
 
 Purpose
