@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from models import Match
 
 
@@ -52,7 +52,7 @@ def compute_standings(players: List, matches: List[Match]) -> List[Dict]:
         primary_metric = s['points'] + gw_rate
         table.append({
             'player_id': pid,
-            'player_name': s['player'].player_name,
+            'player_name': s['player'].username,
             'points': s['points'],
             'points_plus': primary_metric,
             'match_wins': s['match_wins'],
@@ -88,3 +88,14 @@ def seed_playoff(sorted_players: List[Dict], n: int) -> List[Dict]:
         pairs.append({'seed_a': i+1 + (1 if bye else 0), 'player_a': top, 'seed_b': n - i + (1 if bye else 0), 'player_b': bottom})
 
     return {'pairs': pairs, 'bye': bye}
+
+
+def validate_password(password: str, confirm_password: str = None) -> Tuple[bool, str]:
+    """Centralized password validation logic."""
+    if not password:
+        return False, "Password cannot be empty"
+    if len(password) < 4:
+        return False, "Password must be at least 4 characters long"
+    if confirm_password is not None and password != confirm_password:
+        return False, "Passwords do not match"
+    return True, ""

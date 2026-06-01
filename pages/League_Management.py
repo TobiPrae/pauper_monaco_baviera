@@ -1,12 +1,12 @@
 import streamlit as st
 from datastore_client import get_client
-from auth import require_auth
+from auth import require_admin
 from datetime import datetime, timedelta
 from itertools import combinations
 
 st.set_page_config(page_title="League Management")
 
-require_auth()
+require_admin()
 
 client = get_client()
 
@@ -15,7 +15,7 @@ if "success_msg" in st.session_state:
     st.success(st.session_state.success_msg)
     del st.session_state.success_msg
 
-players = client.list_players()
+users = client.list_users()
 deck_format = lambda x: x.deck_name if x else "No Deck Selected"
 
 # --- ADD LEAGUE ---
@@ -29,10 +29,10 @@ with st.form("add_league"):
     st.write("---")
     st.write("**Initial Roster**")
     roster_selections = {}
-    for p in players:
-        is_selected = st.checkbox(p.player_name, key=f"add_p_{p.id}")
+    for u in users:
+        is_selected = st.checkbox(u.username, key=f"add_u_{u.id}")
         if is_selected:
-            roster_selections[p.id] = p.player_name
+            roster_selections[u.id] = u.username
     
     submitted = st.form_submit_button("Add League")
     if submitted:
@@ -61,40 +61,40 @@ with st.form("add_league"):
             # Next round starts exactly one week later
             current_round_start += timedelta(days=7)
 
-        for pid, p_name in roster_selections.items():
-            # Create a default deck for each player and add them to the league
-            default_deck = client.add_deck(deck_name=f"{p_name}'s Deck")
-            client.add_player_to_league(new_league.id, pid, default_deck.id)
+        for uid, u_name in roster_selections.items():
+            # Create a default deck for each user and add them to the league
+            default_deck = client.add_deck(deck_name=f"{u_name}'s Deck")
+            client.add_user_to_league(new_league.id, uid, default_deck.id)
             
         # Automatically generate Round Robin matches using the Circle Method to avoid double-playing
-        player_ids = list(roster_selections.keys())
-        if len(player_ids) % 2 != 0:
-            player_ids.append(None) # Add a 'Bye' player if odd number of players
+        user_ids = list(roster_selections.keys())
+        if len(user_ids) % 2 != 0:
+            user_ids.append(None) # Add a 'Bye' user if odd number of users
 
-        n = len(player_ids)
+        n = len(user_ids)
         pairing_groups = []
-        temp_players = list(player_ids)
+        temp_users = list(user_ids)
 
-        # Generate groups where each player plays once (or has a bye)
+        # Generate groups where each user plays once (or has a bye)
         for _ in range(n - 1):
             group = []
             for i in range(n // 2):
-                p1, p2 = temp_players[i], temp_players[n - 1 - i]
-                if p1 is not None and p2 is not None:
-                    group.append((p1, p2))
+                u1, u2 = temp_users[i], temp_users[n - 1 - i]
+                if u1 is not None and u2 is not None:
+                    group.append((u1, u2))
             pairing_groups.append(group)
-            # Rotate players: fixed the first one, shift the rest
-            temp_players = [temp_players[0]] + [temp_players[-1]] + temp_players[1:-1]
+            # Rotate users: fixed the first one, shift the rest
+            temp_users = [temp_users[0]] + [temp_users[-1]] + temp_users[1:-1]
 
         num_rounds = len(created_rounds)
         if num_rounds > 0:
             for g_idx, group in enumerate(pairing_groups):
                 # Distribute groups across the available league weeks
                 assigned_round = created_rounds[g_idx % num_rounds]
-                for p1_id, p2_id in group:
+                for u1_id, u2_id in group:
                     client.add_match(
-                        player_a=p1_id,
-                        player_b=p2_id,
+                        player_a=u1_id,
+                        player_b=u2_id,
                         round_id=assigned_round.id,
                         match_type="Round",
                         starting_player=None,

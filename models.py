@@ -3,9 +3,12 @@ from typing import List, Optional, Dict
 
 
 @dataclass
-class Player:
+class User:
     id: str
-    player_name: str
+    username: str
+    password_hash: str
+    is_admin: bool = False
+    original_username: str = ""
 
 @dataclass
 class Deck:
@@ -54,7 +57,7 @@ class League:
 class LeaguePlayer:
     id: str
     league_id: str
-    player_id: str
+    user_id: str
     deck_id: str
 
 def compute_match_summary(match: Match) -> Dict:
