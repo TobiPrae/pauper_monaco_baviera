@@ -9,13 +9,10 @@ require_auth()
 
 client = get_client()
 
-leagues = client.list_leagues()
-if not leagues:
+selected_league = st.session_state.get('current_league')
+if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
-
-leagues.sort(key=lambda x: x.nr, reverse=True)
-selected_league = st.sidebar.selectbox("Select League", leagues, format_func=lambda x: f"League {x.nr}")
 
 # Filter players and matches for the selected league
 league_rounds = client.list_rounds(selected_league.id)

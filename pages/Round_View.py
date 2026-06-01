@@ -8,13 +8,10 @@ st.set_page_config(page_title="Match Day")
 require_auth()
 client = get_client()
 
-leagues = client.list_leagues()
-if not leagues:
+selected_league = st.session_state.get('current_league')
+if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
-
-leagues.sort(key=lambda x: x.nr, reverse=True)
-selected_league = st.sidebar.selectbox("Select League", leagues, format_func=lambda x: f"League {x.nr}")
 
 # Fetch rounds for the selected league
 league_rounds = client.list_rounds(selected_league.id)
@@ -29,7 +26,8 @@ selected_round_nr = st.segmented_control(
     "Select Match Week",
     options=[r.nr for r in league_rounds],
     default=league_rounds[0].nr,
-    format_func=lambda x: f"Week {x}"
+    format_func=lambda x: f"Week {x}",
+    key=f"round_selector_{selected_league.id}"
 )
 
 # Find the specific round object

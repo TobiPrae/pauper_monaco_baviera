@@ -57,7 +57,7 @@ def require_auth():
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.text_input("Username", key="login_username")
+            st.text_input("Companion", key="login_username")
             st.text_input(
                 "Speak, friend, and enter.", 
                 type="password", 

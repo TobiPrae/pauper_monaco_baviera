@@ -6,9 +6,9 @@ from typing import List, Optional, Dict
 class User:
     id: str
     username: str
-    email: str
     password_hash: str
     is_admin: bool = False
+    original_username: str = ""
 
 @dataclass
 class Deck:

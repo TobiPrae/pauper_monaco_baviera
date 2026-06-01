@@ -13,30 +13,25 @@ if "success_msg" in st.session_state:
     st.success(st.session_state.success_msg)
     del st.session_state.success_msg
 
-#st.subheader("Add Deck")
-#with st.form("add_deck"):
-#    name = st.text_input("Deck name", key="add_deck_name")
-#    link = st.text_input("Deck list link (URL)", key="add_deck_link")
-#    submitted = st.form_submit_button("Add Deck")
-#    if submitted:
-#        if not name:
-#            st.error("Deck name is required")
- #       else:
-#            d = client.add_deck(deck_name=name, deck_list_link=link)
-#            st.session_state.success_msg = f"Added {d.deck_name}"
-#            st.rerun()
+selected_league = st.session_state.get('current_league')
+if not selected_league:
+    st.info("No leagues found. Decks are managed per league.")
+    st.stop()
+
 
 
 with st.expander("Edit Decks", expanded=False):
     all_decks = client.list_decks()
+    # Mitglieder der ausgewählten Liga laden
+    memberships = client.list_league_players(selected_league.id)
+    league_deck_ids = {m.deck_id for m in memberships}
     
-    # Filter decks based on role: Admins see all, Users see only their own
+    # Decks filtern: Admins sehen alle Decks der Liga, User nur ihr eigenes in dieser Liga
     if st.session_state.user.is_admin:
-        decks = all_decks
+        decks = [d for d in all_decks if d.id in league_deck_ids]
     else:
-        memberships = client.list_league_players()
-        user_deck_ids = {m.deck_id for m in memberships if m.user_id == st.session_state.user.id}
-        decks = [d for d in all_decks if d.id in user_deck_ids]
+        user_league_deck_ids = {m.deck_id for m in memberships if m.user_id == st.session_state.user.id}
+        decks = [d for d in all_decks if d.id in user_league_deck_ids]
 
     decks.sort(key=lambda x: x.deck_name.lower())
 
@@ -51,7 +46,6 @@ with st.expander("Edit Decks", expanded=False):
 
         if selected_deck:
             # Ownership check: find users associated with this deck across all leagues
-            memberships = client.list_league_players()
             deck_owners = {m.user_id for m in memberships if m.deck_id == selected_deck.id}
             
             # Authorization logic: Current user must be an admin OR in the owners list

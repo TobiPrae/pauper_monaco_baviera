@@ -3,6 +3,7 @@ import getpass
 from datastore_client import get_client
 from models import User
 from auth import hash_password
+from utils import validate_password
 
 def main():
     print("--- Pauper Monaco: Admin User Creation ---")
@@ -13,18 +14,13 @@ def main():
         print("Error: Username cannot be empty.")
         return
         
-    email = input("Enter Email: ").strip()
-    
     # Secure password entry (input is hidden)
     password = getpass.getpass("Enter Password: ")
     confirm = getpass.getpass("Confirm Password: ")
     
-    if password != confirm:
-        print("Error: Passwords do not match.")
-        return
-
-    if len(password) < 4:
-        print("Error: Password is too short.")
+    is_valid, error_msg = validate_password(password, confirm)
+    if not is_valid:
+        print(f"Error: {error_msg}")
         return
 
     # Hash the password using the logic in auth.py
@@ -34,9 +30,9 @@ def main():
     new_user = User(
         id=str(uuid.uuid4()),
         username=username,
-        email=email,
         password_hash=hashed_pw,
-        is_admin=True
+        is_admin=True,
+        original_username=username
     )
     
     client = get_client()
