@@ -32,11 +32,6 @@ def require_auth():
     # Initialize session state
     if "user" not in st.session_state:
         st.session_state.user = None
-        
-    # Ensure login form keys exist to avoid KeyError in callbacks
-    for _k in ("login_username", "login_password"):
-        if _k not in st.session_state:
-            st.session_state[_k] = ""
     
     # If not authenticated, show login and stop execution
     if st.session_state.user is None:
@@ -44,6 +39,12 @@ def require_auth():
         
         def check_login():
             """Callback für Login-Check (Enter oder Button)"""
+            # Guard against double-triggering on mobile or missing keys after a successful login
+            if st.session_state.get("user") is not None:
+                return
+            if "login_username" not in st.session_state or "login_password" not in st.session_state:
+                return
+
             username = st.session_state.login_username
             pwd = st.session_state.login_password
             
