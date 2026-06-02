@@ -11,6 +11,20 @@ client = get_client()
 users = client.list_users()
 matches = client.list_matches()
 
+# If a league is selected, try to load persisted PlayOffs matches for that league
+selected_league = st.session_state.get('current_league')
+playoff_matches = []
+if selected_league:
+    try:
+        league_rounds = client.list_rounds(selected_league.id)
+        round_ids = {r.id for r in league_rounds}
+        playoff_matches = [m for m in matches if getattr(m, 'match_type', 'Round') == 'PlayOffs' and getattr(m, 'round_id', None) in round_ids]
+    except Exception:
+        playoff_matches = []
+
+if playoff_matches:
+    st.info("Loaded persisted PlayOffs matches for this league.")
+
 if not users:
     st.info("Add users first on User Management page.")
 else:
@@ -20,7 +34,22 @@ else:
         st.error("You need at least 4 players for the playoff bracket!")
     else:
         # Get top 4 players
-        top_4 = table[:4]
+        if playoff_matches:
+            # derive player ids from persisted playoff matches
+            playoff_player_ids = set()
+            for m in playoff_matches:
+                if getattr(m, 'player_a', None):
+                    playoff_player_ids.add(m.player_a)
+                if getattr(m, 'player_b', None):
+                    playoff_player_ids.add(m.player_b)
+            # preserve standings order when selecting playoff players
+            ordered_players = [r for r in table if r['player_id'] in playoff_player_ids]
+            if len(ordered_players) >= 4:
+                top_4 = ordered_players[:4]
+            else:
+                top_4 = table[:4]
+        else:
+            top_4 = table[:4]
         
         # Initialize bracket in session state
         if 'bracket_initialized' not in st.session_state:

@@ -2,6 +2,7 @@ import streamlit as st
 from datastore_client import get_client
 from utils import compute_standings, seed_playoff
 from auth import require_auth
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="League")
 
@@ -89,20 +90,120 @@ if table:
     else:
         st.info("Select at least one column to display the table.")
 
-    # Top-n playoffs control
+    # Top-n playoffs control (admin only)
     max_top = len(df)
     top_n = st.number_input("Top N Player Playoffs", min_value=2, max_value=max_top, value=min(4, max_top), step=1)
     st.caption("Playoff seeding: best vs worst, 2nd best vs 2nd worst, etc.")
-    if st.button("Generate Bracket"):
+
+    def generate_playoffs_action():
+        # Prevent double submission and indicate progress
+        st.session_state['generating_playoffs'] = True
+
+        # Check if playoffs already generated for this league
+        if getattr(selected_league, 'playoffs_closed', False):
+            st.warning("Playoffs already generated for this league.")
+            st.session_state['generating_playoffs'] = False
+            return
+
+        # Check there are enough players
+        if not league_players or len(league_players) < 2:
+            st.error("Not enough players in the league to generate playoffs.")
+            st.session_state['generating_playoffs'] = False
+            return
+
         bracket = seed_playoff(table, top_n)
         pairs = bracket.get('pairs', [])
         bye = bracket.get('bye')
-        st.subheader("Playoff Bracket")
-        for p in pairs:
-            a = p['player_a']
-            b = p['player_b']
-            st.write(f"Seed {p['seed_a']} — {a['player_name']}  vs  Seed {p['seed_b']} — {b['player_name']}")
-        if bye:
-            st.info(f"Top seed gets a bye: {bye['player_name']}")
+
+        if not pairs:
+            st.error("No playoff pairs generated. Adjust Top N and try again.")
+            st.session_state['generating_playoffs'] = False
+            return
+
+        # Create a new playoff round and persist matches
+        try:
+            with st.spinner("Generating playoff matches..."):
+                league_rounds = client.list_rounds(selected_league.id)
+                max_nr = max((r.nr for r in league_rounds), default=0)
+
+                new_nr = max_nr + 1
+                today = datetime.now().date()
+                new_round = client.add_round(
+                    league_id=selected_league.id,
+                    nr=new_nr,
+                    start_date=today.strftime('%Y-%m-%d'),
+                    end_date=(today + timedelta(days=6)).strftime('%Y-%m-%d')
+                )
+
+                for p in pairs:
+                    a = p['player_a']
+                    b = p['player_b']
+                    player_a_id = a.get('player_id')
+                    player_b_id = b.get('player_id')
+                    # Persist a PlayOffs match (games are empty placeholders)
+                    client.add_match(
+                        player_a=player_a_id,
+                        player_b=player_b_id,
+                        round_id=new_round.id,
+                        starting_player=None,
+                        games=[{'winner': None}, {'winner': None}, {'winner': None}],
+                        went_in_time=False,
+                        match_type="PlayOffs"
+                    )
+
+                # Mark playoffs as generated for the league
+                client.update_league(selected_league.id, playoffs_closed=True)
+
+                if bye:
+                    st.info(f"Top seed gets a bye: {bye['player_name']}")
+
+                st.success("Playoff matches generated and saved.")
+        except Exception as e:
+            st.error(f"Failed to generate playoffs: {e}")
+        finally:
+            # ensure generating flag is cleared; playoffs_closed will keep button disabled
+            st.session_state['generating_playoffs'] = False
+            st.rerun()
+
+    # Show the Generate Playoffs control only for admins
+    is_admin = getattr(st.session_state.get('user'), 'is_admin', False)
+    disabled = getattr(selected_league, 'playoffs_closed', False)
+    if is_admin:
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.button(
+                "Generate Playoffs",
+                disabled=disabled or st.session_state.get('generating_playoffs', False),
+                on_click=generate_playoffs_action
+            )
+        with col2:
+            if disabled:
+                st.info("Playoffs already generated for this league. Generate Playoffs is disabled.")
+            else:
+                # Show bracket preview for admins before generation
+                if st.button("Preview Bracket"):
+                    bracket = seed_playoff(table, top_n)
+                    pairs = bracket.get('pairs', [])
+                    bye = bracket.get('bye')
+                    st.subheader("Playoff Bracket Preview")
+                    for p in pairs:
+                        a = p['player_a']
+                        b = p['player_b']
+                        st.write(f"Seed {p['seed_a']} — {a['player_name']}  vs  Seed {p['seed_b']} — {b['player_name']}")
+                    if bye:
+                        st.info(f"Top seed gets a bye: {bye['player_name']}")
+    else:
+        # Non-admin users can still preview the bracket but not generate it
+        if st.button("Preview Bracket"):
+            bracket = seed_playoff(table, top_n)
+            pairs = bracket.get('pairs', [])
+            bye = bracket.get('bye')
+            st.subheader("Playoff Bracket Preview")
+            for p in pairs:
+                a = p['player_a']
+                b = p['player_b']
+                st.write(f"Seed {p['seed_a']} — {a['player_name']}  vs  Seed {p['seed_b']} — {b['player_name']}")
+            if bye:
+                st.info(f"Top seed gets a bye: {bye['player_name']}")
 else:
     st.info("No players or matches yet.")
