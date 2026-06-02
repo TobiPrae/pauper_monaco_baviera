@@ -4,9 +4,11 @@ import time
 import json
 from typing import Dict, List, Optional
 from models import User, Match, Deck, League, LeaguePlayer, Round, Game
+import streamlit as st
 
 # Choose backend: use real GCP Datastore if env indicates, otherwise in-memory fallback
-USE_GCP = os.environ.get("USE_GCP_DATASTORE") == "1" or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
+service_account_info = dict(st.secrets["service_account_key"])
+USE_GCP = os.environ.get("USE_GCP_DATASTORE") == "1" or service_account_info is not None
 _gcloud_available = False
 if USE_GCP:
     try:
@@ -20,7 +22,7 @@ if USE_GCP:
 class DatastoreClient:
     def __init__(self):
         if USE_GCP and _gcloud_available:
-            self.client = _datastore.Client()
+            self.client = _datastore.Client.from_service_account_info(service_account_info)
         else:
             self.client = None
             self.local_file = "local_datastore.json"
