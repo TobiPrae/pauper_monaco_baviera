@@ -1,37 +1,95 @@
-import os
-from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
-from auth import check_password
+from auth import require_auth
+from datastore_client import get_client
+
+# Page config similar to your example
+st.set_page_config(
+    page_title="Pauper Monaco",
+    page_icon="🍆",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
 
 load_dotenv()
 
-# Support either a plain password (`STREAMLIT_PASSWORD`) or a hashed password (`STREAMLIT_PASSWORD_HASH`).
-PLAIN_PASSWORD = os.environ.get("STREAMLIT_PASSWORD")
-HASHED_PASSWORD = os.environ.get("STREAMLIT_PASSWORD_HASH")
+# Unified authentication check
+require_auth()
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+client = get_client()
 
-if not st.session_state.authenticated:
-    st.title("MTG Tournament Tracker — Login")
-    pwd = st.text_input("Password", type="password")
-    if st.button("Enter"):
-        # Prefer hashed password if provided
-        env_hash = HASHED_PASSWORD or (st.secrets.get("password_hash") if "password_hash" in st.secrets else None)
-        env_plain = PLAIN_PASSWORD or (st.secrets.get("password") if "password" in st.secrets else None)
-        valid = False
-        if env_hash:
-            valid = check_password(pwd, env_hash)
-        elif env_plain:
-            valid = (pwd == env_plain)
+is_admin = st.session_state.user.is_admin if st.session_state.user else False
 
-        if valid:
-            st.session_state.authenticated = True
-            st.experimental_rerun()
-        else:
-            st.error("Invalid password. Set STREAMLIT_PASSWORD or STREAMLIT_PASSWORD_HASH env or secrets.")
-else:
-    st.title("MTG Tournament Tracker")
-    st.write("Use the pages menu to navigate: Player Management, League, Record Game, Edit Game.")
-    st.write("If you don't see pages, ensure files exist in the `pages/` folder.")
+# This places the image at the top of the sidebar
+#st.sidebar.image("assets/logo.png", use_container_width=True)
+st.logo("assets/logo.png")
+
+# 3. Inject "Heavy" CSS to force the size
+st.markdown(
+    """
+    <style>
+        /* This targets the container that Streamlit uses for the logo */
+        [data-testid="stSidebarHeader"] img {
+            max-height: 120px !important;  /* Adjust this value as needed */
+            width: auto !important;
+            height: auto !important;
+        }
+        
+        /* Optional: This reduces the padding around the logo to give it more room */
+        [data-testid="stSidebarHeader"] {
+            padding-top: 2rem !important;
+            padding-bottom: 1rem !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.divider()
+
+with st.sidebar:
+    # Global League Selection
+    leagues = client.list_leagues()
+    if leagues:
+        leagues.sort(key=lambda x: x.nr, reverse=True)
+        if "selected_league_id" not in st.session_state:
+            st.session_state.selected_league_id = leagues[0].id
+
+        idx = next((i for i, l in enumerate(leagues) if l.id == st.session_state.selected_league_id), 0)
+        sel_league = st.selectbox(
+            "Select League", 
+            leagues, 
+            index=idx, 
+            format_func=lambda x: f"League {x.nr}",
+            key="global_league_selector"
+        )
+        # Ensure current_league is always set before any potential rerun
+        st.session_state.current_league = sel_league
+        if sel_league.id != st.session_state.selected_league_id:
+            st.session_state.selected_league_id = sel_league.id
+            st.rerun()
+    st.divider()
+    st.caption(f"👤 Logged in as: **{st.session_state.user.username}**")
+    if st.button("Logout", use_container_width=True, type="secondary"):
+        st.session_state.user = None
+        st.rerun()
+
+league = st.Page("pages/League.py", title="League")
+round_view = st.Page("pages/Round_View.py", title="Match Day")
+playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
+player_management = st.Page("pages/Player_Management.py", title="Manage Users")
+league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
+deck_management = st.Page("pages/Deck_Management.py", title="Manage Decks")
+profile = st.Page("pages/Profile.py", title="Profile")
+
+# Build navigation based on roles
+pages = [league, round_view, playoffs,profile, deck_management]
+if is_admin:
+    pages.extend([player_management, league_management])
+
+pg = st.navigation(pages)
+
+
+
+pg.run()
+    
