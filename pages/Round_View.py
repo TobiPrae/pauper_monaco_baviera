@@ -15,6 +15,8 @@ if not selected_league:
 
 # Fetch rounds for the selected league
 league_rounds = client.list_rounds(selected_league.id)
+# Filter to only show round-robin match weeks (exclude playoff weeks)
+league_rounds = [r for r in league_rounds if r.nr <= selected_league.weeks_rounds]
 league_rounds.sort(key=lambda x: x.nr)
 
 if not league_rounds:
@@ -38,7 +40,8 @@ if current_round:
 
     # Fetch matches for this specific round
     all_matches = client.list_matches()
-    round_matches = [m for m in all_matches if getattr(m, 'round_id', None) == current_round.id]
+    # Ensure we only display standard round-robin matches
+    round_matches = [m for m in all_matches if getattr(m, 'round_id', None) == current_round.id and getattr(m, 'match_type', 'Round') == 'Round']
     
     # Get user mapping for names
     users = client.list_users()
