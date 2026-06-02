@@ -119,7 +119,7 @@ else:
             def create_player_box(x, y, name, rank, color="#e8f4f8"):
                 return f'''<rect x="{x-80}" y="{y-25}" width="160" height="50" fill="{color}" stroke="#333" stroke-width="2" rx="5"/>
                           <text x="{x}" y="{y-5}" text-anchor="middle" font-size="12" font-weight="bold">{name[:20]}</text>
-                          <text x="{x}" y="{y+10}" text-anchor="middle" font-size="10">Rank {rank}</text>'''
+                          <text x="{x}" y="{y+10}" text-anchor="middle" font-size="10">{rank}</text>'''
             
             # Place top 4 players
             bracket_html += create_player_box(150, 100, top_4[0]['player_name'], 1)
@@ -128,9 +128,9 @@ else:
             bracket_html += create_player_box(150, 600, top_4[3]['player_name'], 4)
             
             if semi_1_winner:
-                bracket_html += create_player_box(300, 350, semi_1_winner['player_name'], "SF1", "#90EE90")
+                bracket_html += create_player_box(300, 350, semi_1_winner['player_name'], "Semifinalist 1", "#90EE90")
             if semi_2_winner:
-                bracket_html += create_player_box(900, 350, semi_2_winner['player_name'], "SF2", "#90EE90")
+                bracket_html += create_player_box(900, 350, semi_2_winner['player_name'], "Semifinalist 2", "#90EE90")
             
             # Champion box - always drawn (centered at x=600)
             if champion:
