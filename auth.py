@@ -32,6 +32,11 @@ def require_auth():
     # Initialize session state
     if "user" not in st.session_state:
         st.session_state.user = None
+        
+    # Ensure login form keys exist to avoid KeyError in callbacks
+    for _k in ("login_username", "login_password"):
+        if _k not in st.session_state:
+            st.session_state[_k] = ""
     
     # If not authenticated, show login and stop execution
     if st.session_state.user is None:
