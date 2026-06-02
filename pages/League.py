@@ -92,8 +92,12 @@ if table:
 
     # Top-n playoffs control (admin only)
     max_top = len(df)
-    top_n = st.number_input("Top N Player Playoffs", min_value=2, max_value=max_top, value=min(4, max_top), step=1)
-    st.caption("Playoff seeding: best vs worst, 2nd best vs 2nd worst, etc.")
+    playoff_options = [2]
+    if max_top >= 4:
+        playoff_options.append(4)
+    if max_top >= 8:
+        playoff_options.append(8)
+    top_n = st.selectbox("Top N Player Playoffs", options=playoff_options, index=min(1, len(playoff_options)-1))
 
     def generate_playoffs_action():
         # Prevent double submission and indicate progress
@@ -135,12 +139,18 @@ if table:
                     end_date=(today + timedelta(days=6)).strftime('%Y-%m-%d')
                 )
 
+                if top_n == 2:
+                    initial_type = "Final"
+                elif top_n == 4:
+                    initial_type = "SemiFinal"
+                else:
+                    initial_type = "QuarterFinal"
+
                 for p in pairs:
                     a = p['player_a']
                     b = p['player_b']
                     player_a_id = a.get('player_id')
                     player_b_id = b.get('player_id')
-                    # Persist a PlayOffs match (games are empty placeholders)
                     client.add_match(
                         player_a=player_a_id,
                         player_b=player_b_id,
@@ -148,7 +158,7 @@ if table:
                         starting_player=None,
                         games=[{'winner': None}, {'winner': None}, {'winner': None}],
                         went_in_time=False,
-                        match_type="PlayOffs"
+                        match_type=initial_type
                     )
 
                 # Mark playoffs as generated for the league
@@ -163,7 +173,6 @@ if table:
         finally:
             # ensure generating flag is cleared; playoffs_closed will keep button disabled
             st.session_state['generating_playoffs'] = False
-            st.rerun()
 
     # Show the Generate Playoffs control only for admins
     is_admin = getattr(st.session_state.get('user'), 'is_admin', False)
