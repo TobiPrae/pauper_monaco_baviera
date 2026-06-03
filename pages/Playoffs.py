@@ -9,27 +9,34 @@ st.set_page_config(page_title="Playoffs", layout="wide")
 require_auth()
 client = get_client()
 
-users = client.list_users()
+all_users = client.list_users()
 matches = client.list_matches()
 
 # If a league is selected, try to load persisted PlayOffs matches for that league
 selected_league = st.session_state.get('current_league')
+if not selected_league:
+    st.info("No leagues found. Please create a league in League Management.")
+    st.stop()
+
+memberships = client.list_league_players(selected_league.id)
+member_ids = {m.user_id for m in memberships}
+league_players = [u for u in all_users if u.id in member_ids]
+
 playoff_matches = []
 league_round_matches = []
-if selected_league:
-    try:
-        league_rounds = client.list_rounds(selected_league.id)
-        round_ids = {r.id for r in league_rounds}
-        playoff_types = ['QuarterFinal', 'SemiFinal', 'Final', 'MatchFor3rd']
-        playoff_matches = [m for m in matches if getattr(m, 'match_type', '') in playoff_types and getattr(m, 'round_id', None) in round_ids]
-        league_round_matches = [m for m in matches if getattr(m, 'round_id', None) in round_ids and getattr(m, 'match_type', 'Round') == 'Round']
-    except Exception:
-        playoff_matches = []
+try:
+    league_rounds = client.list_rounds(selected_league.id)
+    round_ids = {r.id for r in league_rounds}
+    playoff_types = ['QuarterFinal', 'SemiFinal', 'Final', 'MatchFor3rd']
+    playoff_matches = [m for m in matches if getattr(m, 'match_type', '') in playoff_types and getattr(m, 'round_id', None) in round_ids]
+    league_round_matches = [m for m in matches if getattr(m, 'round_id', None) in round_ids and getattr(m, 'match_type', 'Round') == 'Round']
+except Exception:
+    playoff_matches = []
 
-if not users:
-    st.info("Add users first on User Management page.")
+if not league_players:
+    st.info("No players found for this league. Add players in League Management.")
 else:
-    table = compute_standings(users, league_round_matches)
+    table = compute_standings(league_players, league_round_matches)
     
     # Determine if we are in a Top 4 or Top 8 scenario based on existing matches
     has_qf = any(getattr(m, 'match_type', '') == "QuarterFinal" for m in playoff_matches)
@@ -49,7 +56,7 @@ else:
             st.session_state['champion'] = None
         
         # Match result identification
-        user_map = {u.id: u.username for u in users}
+        user_map = {u.id: u.username for u in all_users}
         # Find Semis by type
         sf_types = ["SemiFinal"]
         sf1_match = None
