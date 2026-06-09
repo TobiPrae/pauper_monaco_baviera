@@ -1,5 +1,9 @@
 import streamlit as st
 from dotenv import load_dotenv
+
+# Load environment variables before importing data clients
+load_dotenv()
+
 from auth import require_auth
 from datastore_client import get_client
 
@@ -10,8 +14,6 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed",
 )
-
-load_dotenv()
 
 # Unified authentication check
 require_auth()
