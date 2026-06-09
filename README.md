@@ -27,7 +27,16 @@ pip install -r requirements.txt
 "universe_domain"= "googleapis.com"
 ```
 
-3. Run Streamlit:
+3. Configure .env file:
+```bash
+Create .env file in base folder and variable accordingly
+For Development and Test(enables local_datastore.json): 
+USE_GCP_DATASTORE=false
+For Production(enables proper GCP Connection):
+USE_GCP_DATASTORE=true
+```
+
+4. Run Streamlit:
 
 ```bash
 streamlit run app.py
