@@ -85,11 +85,15 @@ else:
 
         if top_n == 8:
             for side, x, ids, y_off in [('L', 100, [0, 7, 3, 4], 0), ('R', 1100, [1, 6, 2, 5], 0)]:
-                svg += f'<line x1="{x}" y1="100" x2="{x}" y2="200" stroke="#999" stroke-width="3"/><line x1="{x}" y1="600" x2="{x}" y2="500" stroke="#999" stroke-width="3"/><line x1="{x}" y1="200" x2="{x + (200 if side=="L" else -200)}" y2="200" stroke="#999" stroke-width="3"/><line x1="{x}" y1="500" x2="{x + (200 if side=="L" else -200)}" y2="500" stroke="#999" stroke-width="3"/><line x1="{x + (200 if side=="L" else -200)}" y1="200" x2="{x + (200 if side=="L" else -200)}" y2="350" stroke="#999" stroke-width="3"/><line x1="{x + (200 if side=="L" else -200)}" y1="500" x2="{x + (200 if side=="L" else -200)}" y2="350" stroke="#999" stroke-width="3"/>'
+                # Linien, die die Seeds zu den QF-Junctions (200/500) und dann zum SF-Eingang (350) führen
+                svg += f'<line x1="{x}" y1="170" x2="{x}" y2="230" stroke="#999" stroke-width="3"/><line x1="{x}" y1="470" x2="{x}" y2="530" stroke="#999" stroke-width="3"/>'
+                svg += f'<line x1="{x}" y1="200" x2="{x + (200 if side=="L" else -200)}" y2="200" stroke="#999" stroke-width="3"/><line x1="{x}" y1="500" x2="{x + (200 if side=="L" else -200)}" y2="500" stroke="#999" stroke-width="3"/>'
+                svg += f'<line x1="{x + (200 if side=="L" else -200)}" y1="200" x2="{x + (200 if side=="L" else -200)}" y2="350" stroke="#999" stroke-width="3"/><line x1="{x + (200 if side=="L" else -200)}" y1="500" x2="{x + (200 if side=="L" else -200)}" y2="350" stroke="#999" stroke-width="3"/>'
                 for i, idx in enumerate(ids):
                     m = s.get(f'qf{1 if idx in (0,7) else (2 if idx in (3,4) else (3 if idx in (1,6) else 4))}')
                     names = get_pair_names(m, top_players[idx]['player_id'])
-                    svg += box(x, 70 if i==0 else (130 if i==1 else (570 if i==2 else 630)), names[0], f"Seed {idx+1}")
+                    y_coord = 170 if i==0 else (230 if i==1 else (470 if i==2 else 530))
+                    svg += box(x, y_coord, names[0], f"Seed {idx+1}")
             for i, k in enumerate(['qf1', 'qf2', 'qf3', 'qf4']):
                 info = get_info(s.get(k))
                 if info: svg += box(300 if i < 2 else 900, 200 if i % 2 == 0 else 500, info['name'], f"QF {i+1} Winner", "#e1f5fe")
