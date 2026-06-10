@@ -82,10 +82,11 @@ playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
 player_management = st.Page("pages/Player_Management.py", title="Manage Users")
 league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
 deck_management = st.Page("pages/Deck_Management.py", title="Manage Decks")
+rules = st.Page("pages/Rules.py", title="Rules")
 profile = st.Page("pages/Profile.py", title="Profile")
 
 # Build navigation based on roles
-pages = [league, round_view, playoffs,profile, deck_management]
+pages = [rules, league, round_view, playoffs, profile, deck_management]
 if is_admin:
     pages.extend([player_management, league_management])
 
