@@ -7,7 +7,8 @@ from models import User, Match, Deck, League, LeaguePlayer, Round, Game
 class BaseStore:
     def __init__(self):
         self.service_account_info = dict(st.secrets.get("service_account_key", {}))
-        self.use_gcp = os.environ.get("USE_GCP_DATASTORE") == "1" or bool(self.service_account_info)
+        
+        self.use_gcp = str(os.environ.get("USE_GCP_DATASTORE", "false")).lower() == "true"
         self.client = None
         self.local_file = "local_datastore.json"
         
@@ -24,7 +25,8 @@ class BaseStore:
                 self.client = datastore.Client.from_service_account_info(self.service_account_info)
             except Exception:
                 self.use_gcp = False
-                self._load_local_data()
+        else:
+            self._load_local_data()
             
 
     def _load_local_data(self):
