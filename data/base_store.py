@@ -8,7 +8,17 @@ class BaseStore:
     def __init__(self):
         self.service_account_info = dict(st.secrets.get("service_account_key", {}))
         
-        self.use_gcp = str(os.environ.get("USE_GCP_DATASTORE", "false")).lower() == "true"
+        # Determine if we should use GCP Datastore
+        # 1. Check environment variable (Priority for local dev/test via .env)
+        env_val = os.getenv("USE_GCP_DATASTORE")
+        if env_val is not None:
+            self.use_gcp = env_val.lower() == "true"
+        else:
+            # 2. Check Streamlit secrets (For production)
+            # Matches your secrets.toml: [USE_GCP_DATASTORE] var = "true"
+            gcp_secret = st.secrets.get("USE_GCP_DATASTORE", {})
+            self.use_gcp = str(gcp_secret.get("var", "false")).lower() == "true"
+
         self.client = None
         self.local_file = "local_datastore.json"
         
