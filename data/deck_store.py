@@ -47,6 +47,13 @@ class DeckStore:
         return d
 
     def delete_deck(self, did: str) -> bool:
+        if self.base.client:
+            try:
+                key = self.base.client.key("Deck", int(did) if did.isdigit() else did)
+            except Exception:
+                key = self.base.client.key("Deck", did)
+            self.base.client.delete(key)
+            return True
         res = self.base.decks.pop(did, None) is not None
         self.base.save_local_data()
         return res
