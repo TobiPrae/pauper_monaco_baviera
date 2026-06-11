@@ -62,7 +62,7 @@ with st.sidebar:
             "Select League", 
             leagues, 
             index=idx, 
-            format_func=lambda x: f"League {x.nr}",
+            format_func=lambda x: f"{x.league_name} ({x.nr})" if x.league_name else f"League {x.nr}",
             key="global_league_selector"
         )
         # Ensure current_league is always set before any potential rerun

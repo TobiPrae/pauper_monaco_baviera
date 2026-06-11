@@ -33,6 +33,10 @@ try:
 except Exception:
     playoff_matches = []
 
+if not getattr(selected_league, 'playoffs_closed', False):
+    st.warning("Playoffs have not been generated yet for this league. Generate them from the League page.")
+    st.stop()
+
 if not league_players:
     st.info("No players found for this league. Add players in League Management.")
 else:
@@ -122,10 +126,10 @@ else:
                 c = st.columns(3); c[0].metric(p1, summ['player_a_game_wins']); c[2].metric(p2, summ['player_b_game_wins'])
                 opts = [None, p1, p2]
                 gc = st.columns(3)
-                g1 = gc[0].selectbox("G1", opts, index=opts.index(p1 if m.games[0].winner=='A' else (p2 if m.games[0].winner=='B' else None)), key=f"p_g1_{m.id}", disabled=not can_edit)
-                g2 = gc[1].selectbox("G2", opts, index=opts.index(p1 if m.games[1].winner=='A' else (p2 if m.games[1].winner=='B' else None)), key=f"p_g2_{m.id}", disabled=not can_edit)
-                g3 = gc[2].selectbox("G3", opts, index=opts.index(p1 if m.games[2].winner=='A' else (p2 if m.games[2].winner=='B' else None)), key=f"p_g3_{m.id}", disabled=not can_edit)
-                start = st.selectbox("Start", opts, index=opts.index(m.starting_player), key=f"p_s_{m.id}", disabled=not can_edit)
+                g1 = gc[0].selectbox("Game 1 winner", opts, index=opts.index(p1 if m.games[0].winner=='A' else (p2 if m.games[0].winner=='B' else None)), key=f"p_g1_{m.id}", disabled=not can_edit)
+                g2 = gc[1].selectbox("Game 2 winner", opts, index=opts.index(p1 if m.games[1].winner=='A' else (p2 if m.games[1].winner=='B' else None)), key=f"p_g2_{m.id}", disabled=not can_edit)
+                g3 = gc[2].selectbox("Game 3 winner", opts, index=opts.index(p1 if m.games[2].winner=='A' else (p2 if m.games[2].winner=='B' else None)), key=f"p_g3_{m.id}", disabled=not can_edit)
+                start = st.selectbox("Starting player", opts, index=opts.index(m.starting_player), key=f"p_s_{m.id}", disabled=not can_edit)
                 if can_edit and st.button("Save", key=f"p_save_{m.id}", use_container_width=True):
                     client.update_match(m.id, games=[{'winner': 'A' if g==p1 else ('B' if g==p2 else None)} for g in (g1,g2,g3)], starting_player=start, match_type=m.match_type)
                     st.rerun()

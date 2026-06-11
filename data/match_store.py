@@ -61,3 +61,17 @@ class MatchStore:
                 out.append(Match(id=str(e.key.id or e.key.name), player_a=e.get("player_a"), player_b=e.get("player_b"), round_id=e.get("round_id"), starting_player=e.get("starting_player"), games=game_objs, went_in_time=e.get("went_in_time", False), match_type=e.get("match_type", "Round")))
             return out
         return list(self.base.matches.values())
+
+    def delete_match(self, mid: str) -> bool:
+        if self.base.client:
+            try:
+                key = self.base.client.key("Match", int(mid) if mid.isdigit() else mid)
+            except Exception:
+                key = self.base.client.key("Match", mid)
+            self.base.client.delete(key)
+            return True
+        if mid in self.base.matches:
+            del self.base.matches[mid]
+            self.base.save_local_data()
+            return True
+        return False

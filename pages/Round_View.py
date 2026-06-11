@@ -92,15 +92,17 @@ if current_round:
                 g_opts = [None, name_a, name_b]
                 
                 # Match input fields
+                start_opts = [None, name_a, name_b]
+                cs, ct = st.columns(2)
+
+                starting_player = cs.selectbox("Starting player", start_opts, index=(start_opts.index(m.starting_player) if m.starting_player in start_opts else 0), key=f"start_{m.id}", disabled=not can_edit)
+                            
+                went_in_time = ct.checkbox("Went in time", value=bool(m.went_in_time), key=f"time_{m.id}", disabled=not can_edit)
                 c1, c2, c3 = st.columns(3)
+                
                 g1_winner = c1.selectbox("Game 1 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[0].winner if len(m.games) >= 1 else None)), key=f"g1_{m.id}", disabled=not can_edit)
                 g2_winner = c2.selectbox("Game 2 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[1].winner if len(m.games) >= 1 else None)), key=f"g2_{m.id}", disabled=not can_edit)
                 g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}", disabled=not can_edit)
-
-                cs, ct = st.columns(2)
-                start_opts = [None, name_a, name_b]
-                starting_player = cs.selectbox("Starting player", start_opts, index=(start_opts.index(m.starting_player) if m.starting_player in start_opts else 0), key=f"start_{m.id}", disabled=not can_edit)
-                went_in_time = ct.checkbox("Went in time", value=bool(m.went_in_time), key=f"time_{m.id}", disabled=not can_edit)
 
                 if can_edit:
                     if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
