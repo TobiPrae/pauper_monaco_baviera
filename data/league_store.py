@@ -12,7 +12,7 @@ class LeagueStore:
             from google.cloud import datastore
             key = self.base.client.key("League")
             entity = datastore.Entity(key=key)
-            entity.update({"nr": nr, "league_name": league_name, "start_date": start_date, "weeks_rounds": weeks_rounds, "weeks_playoffs": weeks_playoffs, "end_date": end_date, "round_robin_closed": False, "playoffs_closed": False, "locked": False})
+            entity.update({"nr": nr, "league_name": league_name, "start_date": start_date, "weeks_rounds": weeks_rounds, "weeks_playoffs": weeks_playoffs, "end_date": end_date, "round_robin_closed": False, "playoffs_closed": False, "delete_lock": False})
             self.base.client.put(entity)
             return League(id=str(entity.key.id or entity.key.name), nr=nr, start_date=start_date, end_date=end_date, league_name=league_name, weeks_rounds=weeks_rounds, weeks_playoffs=weeks_playoffs)
         
@@ -25,7 +25,7 @@ class LeagueStore:
     def list_leagues(self) -> List[League]:
         if self.base.client:
             query = self.base.client.query(kind="League")
-            return [League(id=str(e.key.id or e.key.name), nr=e.get("nr"), start_date=e.get("start_date"), end_date=e.get("end_date"), league_name=e.get("league_name", ""), weeks_rounds=e.get("weeks_rounds", 0), weeks_playoffs=e.get("weeks_playoffs", 0), round_robin_closed=e.get("round_robin_closed", False), playoffs_closed=e.get("playoffs_closed", False), locked=e.get("locked", False)) for e in query.fetch()]
+            return [League(id=str(e.key.id or e.key.name), nr=e.get("nr"), start_date=e.get("start_date"), end_date=e.get("end_date"), league_name=e.get("league_name", ""), weeks_rounds=e.get("weeks_rounds", 0), weeks_playoffs=e.get("weeks_playoffs", 0), round_robin_closed=e.get("round_robin_closed", False), playoffs_closed=e.get("playoffs_closed", False), delete_lock=e.get("delete_lock", False)) for e in query.fetch()]
         return list(self.base.leagues.values())
 
     def update_league(self, lid: str, **fields) -> Optional[League]:
@@ -35,7 +35,7 @@ class LeagueStore:
             if not entity: return None
             entity.update(fields)
             self.base.client.put(entity)
-            return League(id=lid, nr=entity.get("nr"), start_date=entity.get("start_date"), end_date=entity.get("end_date"), league_name=entity.get("league_name", ""), round_robin_closed=entity.get("round_robin_closed"), playoffs_closed=entity.get("playoffs_closed"), locked=entity.get("locked", False))
+            return League(id=lid, nr=entity.get("nr"), start_date=entity.get("start_date"), end_date=entity.get("end_date"), league_name=entity.get("league_name", ""), round_robin_closed=entity.get("round_robin_closed"), playoffs_closed=entity.get("playoffs_closed"), delete_lock=entity.get("delete_lock", False))
         
         l = self.base.leagues.get(lid)
         if not l: return None

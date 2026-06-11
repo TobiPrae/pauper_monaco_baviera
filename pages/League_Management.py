@@ -124,7 +124,7 @@ else:
     )
 
     if del_league:
-        is_locked = getattr(del_league, 'locked', False)
+        is_locked = getattr(del_league, 'delete_lock', False)
 
         if is_locked:
             st.warning(f"League {del_league.nr} is **locked** and cannot be deleted. Remove the lock first.")

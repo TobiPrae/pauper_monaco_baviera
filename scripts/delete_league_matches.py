@@ -45,7 +45,7 @@ def main():
         print(f"Resolved League {target_league.nr} to ID: {league_id}")
 
     # 1b. Check if the league is locked
-    if target_league and target_league.locked:
+    if target_league and target_league.delete_lock:
         print(f"\nError: League {target_league.nr} (ID: {target_league.id}) is locked and cannot be deleted.")
         print("To unlock it, set the 'locked' flag to False first.")
         sys.exit(1)

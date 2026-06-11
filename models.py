@@ -53,7 +53,7 @@ class League:
     weeks_playoffs: int = 0
     round_robin_closed: bool = False
     playoffs_closed: bool = False
-    locked: bool = False
+    delete_lock: bool = False
 
 @dataclass
 class LeaguePlayer:

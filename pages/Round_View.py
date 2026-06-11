@@ -106,18 +106,21 @@ if current_round:
 
                 if can_edit:
                     if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
-                        games_payload = [
-                            {'winner': name_to_code(g1_winner)},
-                            {'winner': name_to_code(g2_winner)},
-                            {'winner': name_to_code(g3_winner)},
-                        ]
-                        
-                        client.update_match(
-                            m.id,
-                            games=games_payload,
-                            starting_player=starting_player,
-                            went_in_time=went_in_time,
-                            match_type=getattr(m, 'match_type', 'Round')
-                        )
-                        st.toast(f"Result for {name_a} vs {name_b} saved!")
-                        st.rerun()
+                        if starting_player is None:
+                            st.error("Please select a starting player before saving.")
+                        else:
+                            games_payload = [
+                                {'winner': name_to_code(g1_winner)},
+                                {'winner': name_to_code(g2_winner)},
+                                {'winner': name_to_code(g3_winner)},
+                            ]
+                            
+                            client.update_match(
+                                m.id,
+                                games=games_payload,
+                                starting_player=starting_player,
+                                went_in_time=went_in_time,
+                                match_type=getattr(m, 'match_type', 'Round')
+                            )
+                            st.toast(f"Result for {name_a} vs {name_b} saved!")
+                            st.rerun()
