@@ -35,6 +35,7 @@ st.markdown("""
 
 *   Decklists have to be created **before** the first match and are not allowed to be changed afterwards.
 *   It is mandatory to share the decklists via a Moxfield link.
+*   The decklists will remain hidden until the playoffs are generated.
             
 ### Most Important Rule
 *   Good luck, have fun 🍆
