@@ -36,6 +36,12 @@ For Production(enables proper GCP Connection):
 USE_GCP_DATASTORE=true
 ```
 
+or in secrets.toml:
+```
+[USE_GCP_DATASTORE]
+"var"="true"
+```
+
 4. Run Streamlit:
 
 ```bash
