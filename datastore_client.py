@@ -55,8 +55,8 @@ class DatastoreClient:
         return self.deck_store.delete_deck(did)
 
     # --- League methods ---
-    def add_league(self, nr: int, start_date: str, weeks_rounds: int, weeks_playoffs: int, end_date: str) -> League:
-        return self.league_store.add_league(nr, start_date, weeks_rounds, weeks_playoffs, end_date)
+    def add_league(self, nr: int, start_date: str, weeks_rounds: int, weeks_playoffs: int, end_date: str, league_name: str = "") -> League:
+        return self.league_store.add_league(nr, start_date, weeks_rounds, weeks_playoffs, end_date, league_name)
 
     def list_leagues(self) -> List[League]:
         return self.league_store.list_leagues()
@@ -73,6 +73,9 @@ class DatastoreClient:
 
     def list_rounds(self, league_id: Optional[str] = None) -> List[Round]:
         return self.league_store.list_rounds(league_id)
+
+    def delete_round(self, rid: str) -> bool:
+        return self.league_store.delete_round(rid)
 
     # --- LeaguePlayer methods ---
     def add_user_to_league(self, league_id: str, user_id: str, deck_id: str) -> LeaguePlayer:
@@ -96,6 +99,9 @@ class DatastoreClient:
 
     def list_matches(self) -> List[Match]:
         return self.match_store.list_matches()
+
+    def delete_match(self, mid: str) -> bool:
+        return self.match_store.delete_match(mid)
 
 
 # Singleton instance for simple use in app

@@ -33,10 +33,12 @@ all_decks = client.list_decks()
 deck_lookup = {d.id: d for d in all_decks}
 player_to_deck = {m.user_id: deck_lookup.get(m.deck_id) for m in memberships}
 
+playoffs_generated = getattr(selected_league, 'playoffs_closed', False)
+
 for row in table:
     deck = player_to_deck.get(row['player_id'])
     row['deck_name'] = deck.deck_name if deck else "Kein Deck"
-    row['deck_link'] = deck.deck_list_link if deck else None
+    row['deck_link'] = deck.deck_list_link if (deck and playoffs_generated) else None
 
 import pandas as pd
 if table:
@@ -46,7 +48,6 @@ if table:
     col_mapping = {
         'player_name': 'Player',
         'deck_name': 'Deck',
-        'deck_link': 'Decklist',
         'points_plus': 'Points+GWR',
         'points': 'Points',
         'match_wins': 'Match Wins',
@@ -58,6 +59,8 @@ if table:
         'total_games': 'Total Games',
         'game_win_rate': 'Game Win Rate'
     }
+    if playoffs_generated:
+        col_mapping['deck_link'] = 'Decklist'
 
     # Sort by the primary metric and apply name mapping
     df.insert(0, 'Rank', range(1, len(df) + 1))
@@ -76,16 +79,21 @@ if table:
         default_cols = ['Rank', 'Player', 'Points+GWR', 'Total Matches']
     else:
         # Show a more detailed view for desktop users
-        default_cols = ['Rank', 'Player', 'Points+GWR', 'Total Matches', 'Deck', 'Decklist']
+        default_cols = ['Rank', 'Player', 'Points+GWR', 'Total Matches', 'Deck']
+        if playoffs_generated:
+            default_cols.append('Decklist')
 
     selected_cols = st.multiselect("Select columns to display:", options=all_display_cols, default=default_cols)
 
     if selected_cols:
+        col_config = {}
+        if playoffs_generated:
+            col_config["Decklist"] = st.column_config.LinkColumn("Decklist", display_text="🔗 Link")
         st.dataframe(
             df[selected_cols], 
             use_container_width=True, 
             hide_index=True,
-            column_config={"Decklist": st.column_config.LinkColumn("Decklist", display_text="🔗 Link")}
+            column_config=col_config
         )
     else:
         st.info("Select at least one column to display the table.")

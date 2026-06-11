@@ -48,10 +48,12 @@ class League:
     nr: int
     start_date: str
     end_date: str
+    league_name: str = ""
     weeks_rounds: int = 0
     weeks_playoffs: int = 0
     round_robin_closed: bool = False
     playoffs_closed: bool = False
+    delete_lock: bool = False
 
 @dataclass
 class LeaguePlayer:
