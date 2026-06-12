@@ -14,9 +14,10 @@ if not selected_league:
     st.stop()
 
 # Fetch rounds for the selected league
-league_rounds = client.list_rounds(selected_league.id)
+all_rounds = client.list_rounds(selected_league.id)
+
 # Filter to only show round-robin match weeks (exclude playoff weeks)
-league_rounds = [r for r in league_rounds if r.nr <= selected_league.weeks_rounds]
+league_rounds = [r for r in all_rounds if r.nr <= selected_league.weeks_rounds]
 league_rounds.sort(key=lambda x: x.nr)
 
 if not league_rounds:
@@ -105,6 +106,7 @@ if current_round:
                 g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}", disabled=not can_edit)
 
                 if can_edit:
+                    match_link_val = st.text_input("Match Link", value=getattr(m, "match_link", "") or "", key=f"link_{m.id}")
                     if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
                         if starting_player is None:
                             st.error("Please select a starting player before saving.")
@@ -120,7 +122,10 @@ if current_round:
                                 games=games_payload,
                                 starting_player=starting_player,
                                 went_in_time=went_in_time,
-                                match_type=getattr(m, 'match_type', 'Round')
+                                match_type=getattr(m, 'match_type', 'Round'),
+                                match_link=match_link_val
                             )
                             st.toast(f"Result for {name_a} vs {name_b} saved!")
                             st.rerun()
+
+
