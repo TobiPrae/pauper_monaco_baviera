@@ -14,9 +14,10 @@ if not selected_league:
     st.stop()
 
 # Fetch rounds for the selected league
-league_rounds = client.list_rounds(selected_league.id)
+all_rounds = client.list_rounds(selected_league.id)
+
 # Filter to only show round-robin match weeks (exclude playoff weeks)
-league_rounds = [r for r in league_rounds if r.nr <= selected_league.weeks_rounds]
+league_rounds = [r for r in all_rounds if r.nr <= selected_league.weeks_rounds]
 league_rounds.sort(key=lambda x: x.nr)
 
 if not league_rounds:
@@ -105,6 +106,7 @@ if current_round:
                 g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}", disabled=not can_edit)
 
                 if can_edit:
+                    match_link_val = st.text_input("Match Link", value=getattr(m, "match_link", "") or "", key=f"link_{m.id}")
                     if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
                         if starting_player is None:
                             st.error("Please select a starting player before saving.")
@@ -120,7 +122,42 @@ if current_round:
                                 games=games_payload,
                                 starting_player=starting_player,
                                 went_in_time=went_in_time,
-                                match_type=getattr(m, 'match_type', 'Round')
+                                match_type=getattr(m, 'match_type', 'Round'),
+                                match_link=match_link_val
                             )
                             st.toast(f"Result for {name_a} vs {name_b} saved!")
                             st.rerun()
+
+
+# Render Dropdown for matches with a match_link
+all_matches = client.list_matches()
+round_ids = {r.id for r in all_rounds}
+linked_matches = [m for m in all_matches if m.round_id in round_ids and getattr(m, "match_link", None)]
+
+if linked_matches:
+    st.divider()
+    users = client.list_users()
+    user_map = {u.id: u.username for u in users}
+    
+    def format_linked_match(m):
+        p_a = user_map.get(m.player_a, "Unknown")
+        p_b = user_map.get(m.player_b, "Unknown")
+        m_type = getattr(m, "match_type", "Round")
+        if m_type == "Round":
+            r_obj = next((r for r in all_rounds if r.id == m.round_id), None)
+            week_str = f" (Week {r_obj.nr})" if r_obj else ""
+            return f"{p_a} vs {p_b}{week_str}"
+        else:
+            return f"{m_type}: {p_a} vs {p_b}"
+            
+    selected_link_match = st.selectbox(
+        "Streamed Matches",
+        options=linked_matches,
+        index=None,
+        placeholder="Search or select a match...",
+        format_func=format_linked_match,
+        key="match_link_selector"
+    )
+    if selected_link_match:
+        st.markdown(f"**Watch Match:** [Link]({selected_link_match.match_link})")
+    
