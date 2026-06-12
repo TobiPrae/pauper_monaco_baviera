@@ -138,6 +138,16 @@ if linked_matches:
     st.divider()
     users = client.list_users()
     user_map = {u.id: u.username for u in users}
+    round_map = {r.id: r.nr for r in all_rounds}
+    
+    # Sort by week first, then by player_a's username
+    def sort_key(m):
+        m_type = getattr(m, "match_type", "Round")
+        week = round_map.get(m.round_id, 9999) if m_type == "Round" else 9999
+        p_a_name = user_map.get(m.player_a, "Unknown").lower()
+        return (week, p_a_name)
+        
+    linked_matches.sort(key=sort_key)
     
     def format_linked_match(m):
         p_a = user_map.get(m.player_a, "Unknown")
