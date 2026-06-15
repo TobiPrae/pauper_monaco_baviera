@@ -106,7 +106,7 @@ if current_round:
                 g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}", disabled=not can_edit)
 
                 if can_edit:
-                    match_link_val = st.text_input("Match Link", value=getattr(m, "match_link", "") or "", key=f"link_{m.id}")
+                    video_link_val = st.text_input("Video Link", value=getattr(m, "video_link", "") or "", key=f"link_{m.id}")
                     if st.button("Save Result", key=f"save_{m.id}", use_container_width=True):
                         if starting_player is None:
                             st.error("Please select a starting player before saving.")
@@ -123,7 +123,7 @@ if current_round:
                                 starting_player=starting_player,
                                 went_in_time=went_in_time,
                                 match_type=getattr(m, 'match_type', 'Round'),
-                                match_link=match_link_val
+                                video_link=video_link_val
                             )
                             st.toast(f"Result for {name_a} vs {name_b} saved!")
                             st.rerun()

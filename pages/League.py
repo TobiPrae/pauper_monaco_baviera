@@ -21,8 +21,8 @@ round_ids = {r.id for r in league_rounds}
 all_matches = client.list_matches()
 league_matches = [m for m in all_matches if getattr(m, 'round_id', None) in round_ids and getattr(m, 'match_type', 'Round') == 'Round']
 
-# Render Dropdown for matches with a match_link
-linked_matches = [m for m in all_matches if m.round_id in round_ids and getattr(m, "match_link", None)]
+# Render Dropdown for matches with a video_link
+linked_videos = [m for m in all_matches if m.round_id in round_ids and getattr(m, "video_link", None)]
 
 memberships = client.list_league_players(selected_league.id)
 member_ids = {m.user_id for m in memberships}
@@ -229,7 +229,7 @@ else:
     st.info("No players or matches yet.")
 
 
-if linked_matches:
+if linked_videos:
     st.divider()  
     users = client.list_users()
     user_map = {u.id: u.username for u in users}
@@ -242,7 +242,7 @@ if linked_matches:
         p_a_name = user_map.get(m.player_a, "Unknown").lower()
         return (week, p_a_name)
         
-    linked_matches.sort(key=sort_key)
+    linked_videos.sort(key=sort_key)
     
     def format_linked_match(m):
         p_a = user_map.get(m.player_a, "Unknown")
@@ -257,13 +257,13 @@ if linked_matches:
             
     selected_link_match = st.selectbox(
         "Replay Streamed Matches",
-        options=linked_matches,
+        options=linked_videos,
         index=None,
         placeholder="Search or select a match...",
         format_func=format_linked_match,
-        key="match_link_selector"
+        key="video_link_selector"
     )
     if selected_link_match:
-        st.markdown(f"[🔗 {format_linked_match(selected_link_match)}]({selected_link_match.match_link})")
+        st.markdown(f"[🔗 {format_linked_match(selected_link_match)}]({selected_link_match.video_link})")
 
   

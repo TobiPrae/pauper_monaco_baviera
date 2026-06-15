@@ -33,7 +33,7 @@ class Match:
     games: List[Game] = field(default_factory=list)
     went_in_time: bool = False
     match_type: str = "Round" # "Round" or "PlayOffs"
-    match_link: Optional[str] = None
+    video_link: Optional[str] = None
 
 @dataclass
 class Round:
