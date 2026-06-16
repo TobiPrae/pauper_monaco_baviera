@@ -2,6 +2,7 @@ import streamlit as st
 from datastore_client import get_client
 from auth import require_auth
 from models import compute_match_summary
+from datetime import datetime
 
 st.set_page_config(page_title="Match Day")
 
@@ -24,11 +25,24 @@ if not league_rounds:
     st.warning(f"No rounds found for League {selected_league.nr}.")
     st.stop()
 
+# Determine default round based on current date
+today = datetime.now().date()
+default_round_nr = league_rounds[0].nr
+for r in league_rounds:
+    try:
+        start = datetime.strptime(r.start_date, '%Y-%m-%d').date()
+        end = datetime.strptime(r.end_date, '%Y-%m-%d').date()
+        if start <= today <= end:
+            default_round_nr = r.nr
+            break
+    except (ValueError, TypeError):
+        pass
+
 # Button-based navigation for selecting the Match Day
 selected_round_nr = st.segmented_control(
     "Select Match Week",
     options=[r.nr for r in league_rounds],
-    default=league_rounds[0].nr,
+    default=default_round_nr,
     format_func=lambda x: f"Week {x}",
     key=f"round_selector_{selected_league.id}"
 )
