@@ -128,12 +128,14 @@ else:
                 g1 = gc[0].selectbox("Game 1 winner", opts, index=opts.index(p1 if m.games[0].winner=='A' else (p2 if m.games[0].winner=='B' else None)), key=f"p_g1_{m.id}", disabled=not can_edit)
                 g2 = gc[1].selectbox("Game 2 winner", opts, index=opts.index(p1 if m.games[1].winner=='A' else (p2 if m.games[1].winner=='B' else None)), key=f"p_g2_{m.id}", disabled=not can_edit)
                 g3 = gc[2].selectbox("Game 3 winner", opts, index=opts.index(p1 if m.games[2].winner=='A' else (p2 if m.games[2].winner=='B' else None)), key=f"p_g3_{m.id}", disabled=not can_edit)
-                if can_edit and st.button("Save", key=f"p_save_{m.id}", use_container_width=True):
-                    if start is None:
-                        st.error("Please select a starting player.")
-                    else:
-                        client.update_match(m.id, games=[{'winner': 'A' if g==p1 else ('B' if g==p2 else None)} for g in (g1,g2,g3)], starting_player=start, match_type=m.match_type)
-                        st.rerun()
+                if can_edit:
+                    video_link_val = st.text_input("Video Link", value=getattr(m, "video_link", "") or "", key=f"p_link_{m.id}")
+                    if st.button("Save", key=f"p_save_{m.id}", use_container_width=True):
+                        if start is None:
+                            st.error("Please select a starting player.")
+                        else:
+                            client.update_match(m.id, games=[{'winner': 'A' if g==p1 else ('B' if g==p2 else None)} for g in (g1,g2,g3)], starting_player=start, match_type=m.match_type, video_link=video_link_val)
+                            st.rerun()
 
         for mt, label in [("QuarterFinal", "Quarterfinals"), ("SemiFinal", "Semifinals"), ("Final", "Final"), ("MatchFor3rd", "3rd Place")]:
             ms = [m for m in playoff_matches if m.match_type == mt]
