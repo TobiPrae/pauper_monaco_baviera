@@ -15,7 +15,7 @@ class MatchStore:
             entity.update({"player_a": player_a, "player_b": player_b, "round_id": round_id, "starting_player": starting_player, "games": games, "went_in_time": went_in_time, "match_type": match_type})
             self.base.client.put(entity)
             game_objs = [Game(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
-            return Match(id=str(entity.key.id or entity.key.name), player_a=player_a, player_b=player_b, round_id=round_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
+            return Match(id=str(entity.key.id or entity.key.name), player_a=player_a, player_b=player_b, round_id=round_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type, video_link=entity.get("video_link"))
         
         mid = str(uuid.uuid4())
         game_objs = [Game(game_index=i, winner=g.get("winner")) for i, g in enumerate(games, start=1)]
@@ -36,7 +36,7 @@ class MatchStore:
             self.base.client.put(entity)
             games = entity.get("games", [])
             game_objs = [Game(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
-            return Match(id=str(entity.key.id or entity.key.name), player_a=entity.get("player_a"), player_b=entity.get("player_b"), round_id=entity.get("round_id"), starting_player=entity.get("starting_player"), games=game_objs, went_in_time=entity.get("went_in_time", False), match_type=entity.get("match_type", "Round"))
+            return Match(id=str(entity.key.id or entity.key.name), player_a=entity.get("player_a"), player_b=entity.get("player_b"), round_id=entity.get("round_id"), starting_player=entity.get("starting_player"), games=game_objs, went_in_time=entity.get("went_in_time", False), match_type=entity.get("match_type", "Round"), video_link=entity.get("video_link"))
 
         m = self.base.matches.get(mid)
         if not m: return None
@@ -58,7 +58,7 @@ class MatchStore:
             for e in query.fetch():
                 games = e.get("games", [])
                 game_objs = [Game(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
-                out.append(Match(id=str(e.key.id or e.key.name), player_a=e.get("player_a"), player_b=e.get("player_b"), round_id=e.get("round_id"), starting_player=e.get("starting_player"), games=game_objs, went_in_time=e.get("went_in_time", False), match_type=e.get("match_type", "Round")))
+                out.append(Match(id=str(e.key.id or e.key.name), player_a=e.get("player_a"), player_b=e.get("player_b"), round_id=e.get("round_id"), starting_player=e.get("starting_player"), games=game_objs, went_in_time=e.get("went_in_time", False), match_type=e.get("match_type", "Round"), video_link=e.get("video_link")))
             return out
         return list(self.base.matches.values())
 
