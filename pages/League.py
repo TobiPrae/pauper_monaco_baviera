@@ -81,7 +81,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 if missing_users:
-    st.caption("Missing decklists: " + ", ".join(missing_users))
+    st.caption("Please submit your decklists " + ", ".join(missing_users))
 # --- End traffic light ---
 if table:
     df = pd.DataFrame(table)
