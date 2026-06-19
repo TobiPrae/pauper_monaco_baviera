@@ -3,6 +3,7 @@ from datastore_client import get_client
 from utils import compute_standings, seed_playoff
 from auth import require_auth
 from datetime import datetime, timedelta
+import pandas as pd
 
 st.set_page_config(page_title="League")
 
@@ -43,7 +44,45 @@ for row in table:
     row['deck_name'] = deck.deck_name if deck else "Kein Deck"
     row['deck_link'] = deck.deck_list_link if (deck and playoffs_generated) else None
 
-import pandas as pd
+# --- Decklist submission traffic light ---
+total_players = len(memberships)
+user_id_to_name = {u.id: u.username for u in all_users}
+submitted_count = sum(
+    1 for m in memberships
+    if "moxfield" in (getattr(deck_lookup.get(getattr(m, 'deck_id', None)), 'deck_list_link', '') or '').lower()
+)
+missing_users = [
+    user_id_to_name.get(m.user_id, f"User {m.user_id}")
+    for m in memberships
+    if "moxfield" not in (getattr(deck_lookup.get(getattr(m, 'deck_id', None)), 'deck_list_link', '') or '').lower()
+]
+all_submitted = submitted_count == total_players and total_players > 0
+light_color = "#2ecc71" if all_submitted else "#e74c3c"
+light_emoji = "🟢" if all_submitted else "🔴"
+st.markdown(
+    f"""
+    <div style="
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: {'rgba(46,204,113,0.12)' if all_submitted else 'rgba(231,76,60,0.12)'};
+        border: 1.5px solid {light_color};
+        border-radius: 20px;
+        padding: 6px 16px;
+        margin-bottom: 4px;
+        font-size: 0.97em;
+        font-weight: 500;
+        color: {light_color};
+    ">
+        <span style="font-size:1.1em;">{light_emoji}</span>
+        {submitted_count} out of {total_players} decks submitted
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+if missing_users:
+    st.caption("Please submit your decklists " + ", ".join(missing_users))
+# --- End traffic light ---
 if table:
     df = pd.DataFrame(table)
 
