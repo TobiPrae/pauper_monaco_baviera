@@ -3,6 +3,7 @@ from datastore_client import get_client
 from auth import require_auth
 from models import compute_match_summary
 from datetime import datetime
+from utils import display_user_open_matches_warning
 
 st.set_page_config(page_title="Match Day")
 
@@ -13,6 +14,9 @@ selected_league = st.session_state.get('current_league')
 if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
+
+# Display warnings as toasts
+display_user_open_matches_warning(client, selected_league.id)
 
 # Fetch rounds for the selected league
 all_rounds = client.list_rounds(selected_league.id)
@@ -50,35 +54,10 @@ selected_round_nr = st.segmented_control(
 # Find the specific round object
 current_round = next((r for r in league_rounds if r.nr == selected_round_nr), None)
 
-# --- Warning: open matches from previous rounds ---
-if selected_round_nr is not None:
-    all_matches_check = client.list_matches()
-    previous_rounds = [r for r in league_rounds if r.nr < selected_round_nr]
-    open_previous_rounds = []
-    for prev_r in previous_rounds:
-        prev_matches = [
-            m for m in all_matches_check
-            if getattr(m, 'round_id', None) == prev_r.id
-            and getattr(m, 'match_type', 'Round') == 'Round'
-        ]
-        has_open = any(
-            m.starting_player is None
-            and m.games[0].winner is None
-            and m.games[1].winner is None
-            and m.games[2].winner is None
-            for m in prev_matches
-        )
-        if has_open:
-            open_previous_rounds.append(prev_r.nr)
-    if open_previous_rounds:
-        week_list = ", ".join(f"Week {nr}" for nr in open_previous_rounds)
-        st.error(
-            f"**Open matches from previous rounds: {week_list}**",
-            icon="🔴"
-        )
-
 if current_round:
-    st.info(f"**Schedule:** {current_round.start_date} to {current_round.end_date}")
+    start_formatted = datetime.strptime(current_round.start_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+    end_formatted = datetime.strptime(current_round.end_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+    st.info(f"**Schedule:** {start_formatted} to {end_formatted}")
 
     # Fetch matches for this specific round
     all_matches = client.list_matches()
