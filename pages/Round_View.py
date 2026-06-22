@@ -50,6 +50,33 @@ selected_round_nr = st.segmented_control(
 # Find the specific round object
 current_round = next((r for r in league_rounds if r.nr == selected_round_nr), None)
 
+# --- Warning: open matches from previous rounds ---
+if selected_round_nr is not None:
+    all_matches_check = client.list_matches()
+    previous_rounds = [r for r in league_rounds if r.nr < selected_round_nr]
+    open_previous_rounds = []
+    for prev_r in previous_rounds:
+        prev_matches = [
+            m for m in all_matches_check
+            if getattr(m, 'round_id', None) == prev_r.id
+            and getattr(m, 'match_type', 'Round') == 'Round'
+        ]
+        has_open = any(
+            m.starting_player is None
+            and m.games[0].winner is None
+            and m.games[1].winner is None
+            and m.games[2].winner is None
+            for m in prev_matches
+        )
+        if has_open:
+            open_previous_rounds.append(prev_r.nr)
+    if open_previous_rounds:
+        week_list = ", ".join(f"Week {nr}" for nr in open_previous_rounds)
+        st.error(
+            f"**Open matches from previous rounds: {week_list}**",
+            icon="🔴"
+        )
+
 if current_round:
     st.info(f"**Schedule:** {current_round.start_date} to {current_round.end_date}")
 
