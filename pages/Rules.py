@@ -5,6 +5,13 @@ st.set_page_config(page_title="Rules")
 
 require_auth()
 
+st.subheader("Hall of Fame")
+
+col1, col2, col3 = st.columns(3)
+col1.image("assets/202501.png", caption="Tobi (2025-01)", width=150)
+col2.image("assets/202601.png", caption="Pat (2026-01)", width=150)
+col3.image("assets/202602.png", caption="Juri (2026-02)", width=150)
+
 st.markdown("""
 ### Match Scheduling
 
@@ -40,9 +47,6 @@ st.markdown("""
 ### Most Important Rule
 *   Good luck, have fun 🍆
 
-### Hall of Fame
+
 """)
 
-st.image("assets/202501.png", caption="Tobi (2025-01)", width=150)
-st.image("assets/202601.png", caption="Pat (2026-01)", width=150)
-st.image("assets/202602.png", caption="Juri (2026-02)", width=150)
