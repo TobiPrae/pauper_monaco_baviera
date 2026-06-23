@@ -39,4 +39,10 @@ st.markdown("""
             
 ### Most Important Rule
 *   Good luck, have fun 🍆
+
+### Hall of Fame
 """)
+
+st.image("assets/202501.png", caption="Tobi (2025-01)", width=150)
+st.image("assets/202601.png", caption="Pat (2026-01)", width=150)
+st.image("assets/202602.png", caption="Juri (2026-02)", width=150)
