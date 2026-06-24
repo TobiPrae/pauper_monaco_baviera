@@ -99,3 +99,91 @@ def validate_password(password: str, confirm_password: str = None) -> Tuple[bool
     if confirm_password is not None and password != confirm_password:
         return False, "Passwords do not match"
     return True, ""
+
+
+def display_user_open_matches_warning(client, league_id: str) -> None:
+    """
+    Check for open matches of the current user in previous rounds and display warnings as toasts.
+    Call this function at the top of each page to show warnings.
+    
+    Args:
+        client: The datastore client
+        league_id: The ID of the current league
+    """
+    import streamlit as st
+    
+    try:
+        # Get current user
+        current_user = st.session_state.get("user")
+        if not current_user:
+            return
+        
+        all_rounds = client.list_rounds(league_id)
+        if not all_rounds:
+            return
+        
+        # Find the current round
+        from datetime import datetime
+        today = datetime.now().date()
+        current_round = None
+        
+        for r in all_rounds:
+            try:
+                start = datetime.strptime(r.start_date, '%Y-%m-%d').date()
+                end = datetime.strptime(r.end_date, '%Y-%m-%d').date()
+                if start <= today <= end:
+                    current_round = r
+                    break
+            except (ValueError, TypeError):
+                pass
+        
+        if not current_round:
+            return
+        
+        # Get user mapping for opponent names
+        all_users = client.list_users()
+        user_map = {u.id: u.username for u in all_users}
+        
+        # Check for open matches of the current user in previous rounds
+        all_matches = client.list_matches()
+        previous_rounds = [r for r in all_rounds if r.nr < current_round.nr]
+        open_user_matches = []  # List of tuples (week_nr, opponent_name)
+        
+        for prev_r in previous_rounds:
+            prev_matches = [
+                m for m in all_matches
+                if getattr(m, 'round_id', None) == prev_r.id
+                and getattr(m, 'match_type', 'Round') == 'Round'
+            ]
+            
+            # Check if current user has an open match in this previous round
+            for m in prev_matches:
+                is_player_a = m.player_a == current_user.id
+                is_player_b = m.player_b == current_user.id
+                
+                if (is_player_a or is_player_b):
+                    # Check if match is open
+                    is_open = (
+                        m.starting_player is None
+                        and m.games[0].winner is None
+                        and m.games[1].winner is None
+                        and m.games[2].winner is None
+                    )
+                    if is_open:
+                        # Get opponent name
+                        opponent_id = m.player_b if is_player_a else m.player_a
+                        opponent_name = user_map.get(opponent_id, "Unknown")
+                        open_user_matches.append((prev_r.nr, opponent_name))
+                        break  # Only add this round once
+        
+        # Display warning toast if user has open matches
+        if open_user_matches:
+            match_list = ", ".join(f"Week {week} against {opponent}" for week, opponent in open_user_matches)
+            st.toast(
+                f"Please play your Match from {match_list}",
+                icon="⚠️"
+            )
+    
+    except Exception as e:
+        # Silently fail to avoid breaking page load
+        pass

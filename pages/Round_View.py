@@ -2,6 +2,8 @@ import streamlit as st
 from datastore_client import get_client
 from auth import require_auth
 from models import compute_match_summary
+from datetime import datetime
+from utils import display_user_open_matches_warning
 
 st.set_page_config(page_title="Match Day")
 
@@ -12,6 +14,9 @@ selected_league = st.session_state.get('current_league')
 if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
+
+# Display warnings as toasts
+display_user_open_matches_warning(client, selected_league.id)
 
 # Fetch rounds for the selected league
 all_rounds = client.list_rounds(selected_league.id)
@@ -24,11 +29,24 @@ if not league_rounds:
     st.warning(f"No rounds found for League {selected_league.nr}.")
     st.stop()
 
+# Determine default round based on current date
+today = datetime.now().date()
+default_round_nr = league_rounds[0].nr
+for r in league_rounds:
+    try:
+        start = datetime.strptime(r.start_date, '%Y-%m-%d').date()
+        end = datetime.strptime(r.end_date, '%Y-%m-%d').date()
+        if start <= today <= end:
+            default_round_nr = r.nr
+            break
+    except (ValueError, TypeError):
+        pass
+
 # Button-based navigation for selecting the Match Day
 selected_round_nr = st.segmented_control(
     "Select Match Week",
     options=[r.nr for r in league_rounds],
-    default=league_rounds[0].nr,
+    default=default_round_nr,
     format_func=lambda x: f"Week {x}",
     key=f"round_selector_{selected_league.id}"
 )
@@ -37,7 +55,9 @@ selected_round_nr = st.segmented_control(
 current_round = next((r for r in league_rounds if r.nr == selected_round_nr), None)
 
 if current_round:
-    st.info(f"**Schedule:** {current_round.start_date} to {current_round.end_date}")
+    start_formatted = datetime.strptime(current_round.start_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+    end_formatted = datetime.strptime(current_round.end_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+    st.info(f"**Schedule:** {start_formatted} to {end_formatted}")
 
     # Fetch matches for this specific round
     all_matches = client.list_matches()

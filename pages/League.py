@@ -1,11 +1,12 @@
 import streamlit as st
 from datastore_client import get_client
-from utils import compute_standings, seed_playoff
+from utils import compute_standings, seed_playoff, display_user_open_matches_warning
 from auth import require_auth
 from datetime import datetime, timedelta
 import pandas as pd
 
 st.set_page_config(page_title="League")
+
 
 require_auth()
 
@@ -15,6 +16,8 @@ selected_league = st.session_state.get('current_league')
 if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
+
+display_user_open_matches_warning(client, selected_league.id)
 
 # Filter players and matches for the selected league
 league_rounds = client.list_rounds(selected_league.id)
