@@ -9,12 +9,16 @@ class User:
     password_hash: str
     is_admin: bool = False
     original_username: str = ""
+    modified_by: Optional[str] = None
+    modified_at: Optional[str] = None
 
 @dataclass
 class Deck:
     id: str
     deck_name: str
     deck_list_link: Optional[str] = None
+    modified_by: Optional[str] = None
+    modified_at: Optional[str] = None
 
 @dataclass
 class Game:

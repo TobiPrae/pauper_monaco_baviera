@@ -9,17 +9,16 @@ class UserStore:
 
     def create_user(self, user: User) -> User:
         audit = self.base._get_audit_fields()
+        user.modified_by = audit["modified_by"]
+        user.modified_at = audit["modified_at"]
         if self.base.client:
             from google.cloud import datastore
             key = self.base.client.key("User", user.id)
             entity = datastore.Entity(key=key)
             entity.update(vars(user))
-            entity.update(audit)
             self.base.client.put(entity)
             return user
         
-        user.modified_by = audit["modified_by"]
-        user.modified_at = audit["modified_at"]
         self.base.users[user.id] = user
         self.base.save_local_data()
         return user
@@ -48,7 +47,9 @@ class UserStore:
                 username=entity.get("username"),
                 password_hash=entity.get("password_hash"),
                 is_admin=entity.get("is_admin", False),
-                original_username=entity.get("original_username", entity.get("username"))
+                original_username=entity.get("original_username", entity.get("username")),
+                modified_by=entity.get("modified_by"),
+                modified_at=entity.get("modified_at")
             )
 
         u = self.base.users.get(uid)
@@ -86,7 +87,9 @@ class UserStore:
                 username=e.get("username"),
                 password_hash=e.get("password_hash"),
                 is_admin=e.get("is_admin", False),
-                original_username=e.get("original_username", e.get("username"))
+                original_username=e.get("original_username", e.get("username")),
+                modified_by=e.get("modified_by"),
+                modified_at=e.get("modified_at")
             ) for e in res]
         return list(self.base.users.values())
 
