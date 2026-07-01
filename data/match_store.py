@@ -8,11 +8,13 @@ class MatchStore:
         self.base = base
 
     def add_match(self, player_a: str, player_b: str, round_id: str, starting_player: Optional[str], games: List[Dict], went_in_time: bool = False, match_type: str = "Round") -> Match:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             from google.cloud import datastore
             key = self.base.client.key("Match")
             entity = datastore.Entity(key=key)
             entity.update({"player_a": player_a, "player_b": player_b, "round_id": round_id, "starting_player": starting_player, "games": games, "went_in_time": went_in_time, "match_type": match_type})
+            entity.update(audit)
             self.base.client.put(entity)
             game_objs = [Game(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
             return Match(id=str(entity.key.id or entity.key.name), player_a=player_a, player_b=player_b, round_id=round_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type, video_link=entity.get("video_link"))
@@ -20,11 +22,14 @@ class MatchStore:
         mid = str(uuid.uuid4())
         game_objs = [Game(game_index=i, winner=g.get("winner")) for i, g in enumerate(games, start=1)]
         m = Match(id=mid, player_a=player_a, player_b=player_b, round_id=round_id, starting_player=starting_player, games=game_objs, went_in_time=went_in_time, match_type=match_type)
+        m.modified_by = audit["modified_by"]
+        m.modified_at = audit["modified_at"]
         self.base.matches[mid] = m
         self.base.save_local_data()
         return m
 
     def update_match(self, mid: str, **fields) -> Optional[Match]:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             try:
                 key = self.base.client.key("Match", int(mid))
@@ -33,6 +38,7 @@ class MatchStore:
             entity = self.base.client.get(key)
             if not entity: return None
             for k, v in fields.items(): entity[k] = v
+            entity.update(audit)
             self.base.client.put(entity)
             games = entity.get("games", [])
             game_objs = [Game(game_index=i + 1, winner=g.get("winner")) for i, g in enumerate(games)]
@@ -48,6 +54,8 @@ class MatchStore:
                     setattr(m, 'games', game_objs)
                 elif isinstance(v, list) and v and hasattr(v[0], 'winner'): setattr(m, 'games', v)
                 else: setattr(m, 'games', [])
+        m.modified_by = audit["modified_by"]
+        m.modified_at = audit["modified_at"]
         self.base.save_local_data()
         return m
 

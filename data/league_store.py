@@ -8,16 +8,20 @@ class LeagueStore:
         self.base = base
 
     def add_league(self, nr: int, start_date: str, weeks_rounds: int, weeks_playoffs: int, end_date: str, league_name: str = "") -> League:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             from google.cloud import datastore
             key = self.base.client.key("League")
             entity = datastore.Entity(key=key)
             entity.update({"nr": nr, "league_name": league_name, "start_date": start_date, "weeks_rounds": weeks_rounds, "weeks_playoffs": weeks_playoffs, "end_date": end_date, "round_robin_closed": False, "playoffs_closed": False, "delete_lock": False})
+            entity.update(audit)
             self.base.client.put(entity)
             return League(id=str(entity.key.id or entity.key.name), nr=nr, start_date=start_date, end_date=end_date, league_name=league_name, weeks_rounds=weeks_rounds, weeks_playoffs=weeks_playoffs)
         
         lid = str(uuid.uuid4())
         l = League(id=lid, nr=nr, start_date=start_date, end_date=end_date, league_name=league_name, weeks_rounds=weeks_rounds, weeks_playoffs=weeks_playoffs)
+        l.modified_by = audit["modified_by"]
+        l.modified_at = audit["modified_at"]
         self.base.leagues[lid] = l
         self.base.save_local_data()
         return l
@@ -29,11 +33,13 @@ class LeagueStore:
         return list(self.base.leagues.values())
 
     def update_league(self, lid: str, **fields) -> Optional[League]:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             key = self.base.client.key("League", int(lid) if lid.isdigit() else lid)
             entity = self.base.client.get(key)
             if not entity: return None
             entity.update(fields)
+            entity.update(audit)
             self.base.client.put(entity)
             return League(id=lid, nr=entity.get("nr"), start_date=entity.get("start_date"), end_date=entity.get("end_date"), league_name=entity.get("league_name", ""), round_robin_closed=entity.get("round_robin_closed"), playoffs_closed=entity.get("playoffs_closed"), delete_lock=entity.get("delete_lock", False))
         
@@ -41,6 +47,8 @@ class LeagueStore:
         if not l: return None
         for k, v in fields.items():
             if hasattr(l, k): setattr(l, k, v)
+        l.modified_by = audit["modified_by"]
+        l.modified_at = audit["modified_at"]
         self.base.save_local_data()
         return l
 
@@ -58,15 +66,19 @@ class LeagueStore:
 
     # Round methods
     def add_round(self, league_id: str, nr: int, start_date: str, end_date: str) -> Round:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             from google.cloud import datastore
             key = self.base.client.key("Round")
             entity = datastore.Entity(key=key)
             entity.update({"league_id": league_id, "nr": nr, "start_date": start_date, "end_date": end_date})
+            entity.update(audit)
             self.base.client.put(entity)
             return Round(id=str(entity.key.id or entity.key.name), league_id=league_id, nr=nr, start_date=start_date, end_date=end_date)
         rid = str(uuid.uuid4())
         r = Round(id=rid, league_id=league_id, nr=nr, start_date=start_date, end_date=end_date)
+        r.modified_by = audit["modified_by"]
+        r.modified_at = audit["modified_at"]
         self.base.rounds[rid] = r
         self.base.save_local_data()
         return r
@@ -95,15 +107,19 @@ class LeagueStore:
 
     # LeaguePlayer methods
     def add_user_to_league(self, league_id: str, user_id: str, deck_id: str) -> LeaguePlayer:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             from google.cloud import datastore
             key = self.base.client.key("LeaguePlayer")
             entity = datastore.Entity(key=key)
             entity.update({"league_id": league_id, "user_id": user_id, "deck_id": deck_id})
+            entity.update(audit)
             self.base.client.put(entity)
             return LeaguePlayer(id=str(entity.key.id or entity.key.name), league_id=league_id, user_id=user_id, deck_id=deck_id)
         lpid = str(uuid.uuid4())
         lp = LeaguePlayer(id=lpid, league_id=league_id, user_id=user_id, deck_id=deck_id)
+        lp.modified_by = audit["modified_by"]
+        lp.modified_at = audit["modified_at"]
         self.base.league_players[lpid] = lp
         self.base.save_local_data()
         return lp
@@ -117,17 +133,21 @@ class LeagueStore:
         return list(self.base.league_players.values())
 
     def update_league_player(self, lp_id: str, **fields) -> bool:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             key = self.base.client.key("LeaguePlayer", int(lp_id) if lp_id.isdigit() else lp_id)
             entity = self.base.client.get(key)
             if not entity: return False
             entity.update(fields)
+            entity.update(audit)
             self.base.client.put(entity)
             return True
         lp = self.base.league_players.get(lp_id)
         if not lp: return False
         for k, v in fields.items():
             if hasattr(lp, k): setattr(lp, k, v)
+        lp.modified_by = audit["modified_by"]
+        lp.modified_at = audit["modified_at"]
         self.base.save_local_data()
         return True
 

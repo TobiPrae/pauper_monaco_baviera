@@ -1,7 +1,9 @@
 import os
 import json
+import datetime
 import streamlit as st
 from typing import Dict, Any
+from dataclasses import fields as dataclass_fields
 from models import User, Match, Deck, League, LeaguePlayer, Round, Game
 
 class BaseStore:
@@ -37,7 +39,21 @@ class BaseStore:
                 self.use_gcp = False
         else:
             self._load_local_data()
-            
+
+    def _get_audit_fields(self) -> dict:
+        """Returns audit metadata (modified_by, modified_at) for the current user."""
+        user_id = "system"
+        try:
+            user = st.session_state.get("user")
+            if user is not None:
+                user_id = user.id
+        except Exception:
+            pass
+        return {
+            "modified_by": user_id,
+            "modified_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+
 
     def _load_local_data(self):
         """Loads data from a local JSON file if it exists."""
@@ -47,24 +63,31 @@ class BaseStore:
                     data = json.load(f)
                     # Restore User objects
                     for u in data.get("users", []):
-                        user_fields = {k: v for k, v in u.items() if k in ["id", "username", "password_hash", "is_admin", "original_username"]}
+                        valid_keys = {f.name for f in dataclass_fields(User)}
+                        user_fields = {k: v for k, v in u.items() if k in valid_keys}
                         if "original_username" not in user_fields:
                             user_fields["original_username"] = user_fields.get("username", "")
                         self.users[u["id"]] = User(**user_fields)
                     
                     # Restore other entities
+                    deck_keys = {f.name for f in dataclass_fields(Deck)}
                     for d in data.get("decks", []):
-                        self.decks[d["id"]] = Deck(**d)
+                        self.decks[d["id"]] = Deck(**{k: v for k, v in d.items() if k in deck_keys})
+                    league_keys = {f.name for f in dataclass_fields(League)}
                     for l in data.get("leagues", []):
-                        self.leagues[l["id"]] = League(**l)
+                        self.leagues[l["id"]] = League(**{k: v for k, v in l.items() if k in league_keys})
+                    round_keys = {f.name for f in dataclass_fields(Round)}
                     for r in data.get("rounds", []):
-                        self.rounds[r["id"]] = Round(**r)
+                        self.rounds[r["id"]] = Round(**{k: v for k, v in r.items() if k in round_keys})
+                    lp_keys = {f.name for f in dataclass_fields(LeaguePlayer)}
                     for lp in data.get("league_players", []):
-                        self.league_players[lp["id"]] = LeaguePlayer(**lp)
+                        self.league_players[lp["id"]] = LeaguePlayer(**{k: v for k, v in lp.items() if k in lp_keys})
+                    match_keys = {f.name for f in dataclass_fields(Match)}
                     for m in data.get("matches", []):
                         games_data = m.pop("games", [])
                         game_objs = [Game(**g) for g in games_data]
-                        self.matches[m["id"]] = Match(games=game_objs, **m)
+                        match_fields = {k: v for k, v in m.items() if k in match_keys}
+                        self.matches[m["id"]] = Match(games=game_objs, **match_fields)
             except Exception as e:
                 print(f"Warning: Could not load local data: {e}")
 

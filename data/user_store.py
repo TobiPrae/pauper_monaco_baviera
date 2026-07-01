@@ -8,14 +8,18 @@ class UserStore:
         self.base = base
 
     def create_user(self, user: User) -> User:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             from google.cloud import datastore
             key = self.base.client.key("User", user.id)
             entity = datastore.Entity(key=key)
             entity.update(vars(user))
+            entity.update(audit)
             self.base.client.put(entity)
             return user
         
+        user.modified_by = audit["modified_by"]
+        user.modified_at = audit["modified_at"]
         self.base.users[user.id] = user
         self.base.save_local_data()
         return user
@@ -26,6 +30,7 @@ class UserStore:
         return self.create_user(u)
 
     def update_user(self, uid: str, **fields) -> Optional[User]:
+        audit = self.base._get_audit_fields()
         if self.base.client:
             try:
                 key = self.base.client.key("User", int(uid))
@@ -36,6 +41,7 @@ class UserStore:
                 return None
             for k, v in fields.items():
                 entity[k] = v
+            entity.update(audit)
             self.base.client.put(entity)
             return User(
                 id=str(entity.key.id or entity.key.name), 
@@ -51,6 +57,8 @@ class UserStore:
         for k, v in fields.items():
             if hasattr(u, k):
                 setattr(u, k, v)
+        u.modified_by = audit["modified_by"]
+        u.modified_at = audit["modified_at"]
         self.base.save_local_data()
         return u
 
