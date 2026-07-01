@@ -60,6 +60,22 @@ with st.expander("Edit Users", expanded=False):
                 new_username = st.text_input("Username", value=selected_user.username, key=f"new_uname_{selected_user.id}")
                 new_is_admin = st.checkbox("Is Admin?", value=selected_user.is_admin, key=f"new_admin_{selected_user.id}")
                 
+                if getattr(selected_user, "modified_by", None) or getattr(selected_user, "modified_at", None):
+                    modified_by_val = getattr(selected_user, "modified_by", None)
+                    modified_at_val = getattr(selected_user, "modified_at", None)
+                    modifier = next((u for u in users if u.id == modified_by_val), None) if modified_by_val else None
+                    modifier_display = modifier.username if modifier else (modified_by_val or "Unknown")
+                    if modified_at_val:
+                        try:
+                            from datetime import datetime
+                            dt = datetime.fromisoformat(modified_at_val)
+                            formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+                        except Exception:
+                            formatted_time = modified_at_val
+                        st.caption(f"Last modified by: **{modifier_display}** on **{formatted_time}**")
+                    else:
+                        st.caption(f"Last modified by: **{modifier_display}**")
+
                 save = st.form_submit_button("Save Changes")
                 
                 if save:
