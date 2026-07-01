@@ -12,6 +12,23 @@ user = st.session_state.user
 st.title("My Profile")
 st.write(f"Account created as: **{user.original_username}**")
 
+users = client.list_users()
+if getattr(user, "modified_by", None) or getattr(user, "modified_at", None):
+    modified_by_val = getattr(user, "modified_by", None)
+    modified_at_val = getattr(user, "modified_at", None)
+    modifier = next((u for u in users if u.id == modified_by_val), None) if modified_by_val else None
+    modifier_display = modifier.username if modifier else (modified_by_val or "Unknown")
+    if modified_at_val:
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(modified_at_val)
+            formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+        except Exception:
+            formatted_time = modified_at_val
+        st.caption(f"Last modified by: **{modifier_display}** on **{formatted_time}**")
+    else:
+        st.caption(f"Last modified by: **{modifier_display}**")
+
 st.divider()
 
 with st.form("change_username"):
