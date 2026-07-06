@@ -55,7 +55,11 @@ with st.sidebar:
     if leagues:
         leagues.sort(key=lambda x: x.nr, reverse=True)
         if "selected_league_id" not in st.session_state:
-            st.session_state.selected_league_id = leagues[0].id
+            default_lid = getattr(st.session_state.user, "default_league_id", None)
+            if default_lid and any(l.id == default_lid for l in leagues):
+                st.session_state.selected_league_id = default_lid
+            else:
+                st.session_state.selected_league_id = leagues[0].id
 
         idx = next((i for i, l in enumerate(leagues) if l.id == st.session_state.selected_league_id), 0)
         sel_league = st.selectbox(
@@ -74,6 +78,8 @@ with st.sidebar:
     st.caption(f"👤 Logged in as: **{st.session_state.user.username}**")
     if st.button("Logout", use_container_width=True, type="secondary"):
         st.session_state.user = None
+        st.session_state.pop("selected_league_id", None)
+        st.session_state.pop("current_league", None)
         st.rerun()
 
 league = st.Page("pages/League.py", title="League")

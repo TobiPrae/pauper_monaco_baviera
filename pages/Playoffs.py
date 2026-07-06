@@ -18,6 +18,9 @@ if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
 
+league_display_name = f"{selected_league.league_name} ({selected_league.nr})" if selected_league.league_name else f"League {selected_league.nr}"
+st.title(league_display_name)
+
 memberships = client.list_league_players(selected_league.id)
 member_ids = {m.user_id for m in memberships}
 league_players = [u for u in all_users if u.id in member_ids]

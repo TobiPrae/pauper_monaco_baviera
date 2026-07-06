@@ -16,6 +16,9 @@ if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
 
+league_display_name = f"{selected_league.league_name} ({selected_league.nr})" if selected_league.league_name else f"League {selected_league.nr}"
+st.title(league_display_name)
+
 # Filter players and matches for the selected league
 league_rounds = client.list_rounds(selected_league.id)
 round_ids = {r.id for r in league_rounds}
