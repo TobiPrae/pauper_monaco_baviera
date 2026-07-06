@@ -82,31 +82,39 @@ if current_round:
                     st.markdown(f"**Match Result:** {match_result_text}")
                 st.write("---")
 
-                def get_winner_name(winner_code):
-                    if winner_code == 'A': return name_a
-                    if winner_code == 'B': return name_b
-                    return None
+                # Map starting_player to ID if it's a legacy username
+                username_to_id = {u.username: u.id for u in users}
+                current_start_id = m.starting_player
+                if current_start_id and current_start_id not in (m.player_a, m.player_b):
+                    current_start_id = username_to_id.get(current_start_id, current_start_id)
 
-                # Helper to map names back to codes
-                def name_to_code(name):
-                    if name == name_a: return 'A'
-                    if name == name_b: return 'B'
-                    return None
-
-                g_opts = [None, name_a, name_b]
+                opts = [None, m.player_a, m.player_b]
                 
-                # Match input fields
-                start_opts = [None, name_a, name_b]
+                def format_player(uid):
+                    if uid is None: return "Select..."
+                    return user_map.get(uid, "Unknown")
+
                 cs, ct = st.columns(2)
 
-                starting_player = cs.selectbox("Starting player", start_opts, index=(start_opts.index(m.starting_player) if m.starting_player in start_opts else 0), key=f"start_{m.id}", disabled=not can_edit)
+                starting_player = cs.selectbox(
+                    "Starting player",
+                    opts,
+                    index=(opts.index(current_start_id) if current_start_id in opts else 0),
+                    format_func=format_player,
+                    key=f"start_{m.id}",
+                    disabled=not can_edit
+                )
                             
                 went_in_time = ct.checkbox("Went in time", value=bool(m.went_in_time), key=f"time_{m.id}", disabled=not can_edit)
                 c1, c2, c3 = st.columns(3)
                 
-                g1_winner = c1.selectbox("Game 1 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[0].winner if len(m.games) >= 1 else None)), key=f"g1_{m.id}", disabled=not can_edit)
-                g2_winner = c2.selectbox("Game 2 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[1].winner if len(m.games) >= 1 else None)), key=f"g2_{m.id}", disabled=not can_edit)
-                g3_winner = c3.selectbox("Game 3 Winner", g_opts, index=g_opts.index(get_winner_name(m.games[2].winner if len(m.games) >= 3 else None)), key=f"g3_{m.id}", disabled=not can_edit)
+                g1_winner_val = m.player_a if (len(m.games) >= 1 and m.games[0].winner == 'A') else (m.player_b if (len(m.games) >= 1 and m.games[0].winner == 'B') else None)
+                g2_winner_val = m.player_a if (len(m.games) >= 2 and m.games[1].winner == 'A') else (m.player_b if (len(m.games) >= 2 and m.games[1].winner == 'B') else None)
+                g3_winner_val = m.player_a if (len(m.games) >= 3 and m.games[2].winner == 'A') else (m.player_b if (len(m.games) >= 3 and m.games[2].winner == 'B') else None)
+
+                g1_winner = c1.selectbox("Game 1 Winner", opts, index=opts.index(g1_winner_val) if g1_winner_val in opts else 0, format_func=format_player, key=f"g1_{m.id}", disabled=not can_edit)
+                g2_winner = c2.selectbox("Game 2 Winner", opts, index=opts.index(g2_winner_val) if g2_winner_val in opts else 0, format_func=format_player, key=f"g2_{m.id}", disabled=not can_edit)
+                g3_winner = c3.selectbox("Game 3 Winner", opts, index=opts.index(g3_winner_val) if g3_winner_val in opts else 0, format_func=format_player, key=f"g3_{m.id}", disabled=not can_edit)
 
                 if can_edit:
                     video_link_val = st.text_input("Video Link", value=getattr(m, "video_link", "") or "", key=f"link_{m.id}")
@@ -115,9 +123,9 @@ if current_round:
                             st.error("Please select a starting player before saving.")
                         else:
                             games_payload = [
-                                {'winner': name_to_code(g1_winner)},
-                                {'winner': name_to_code(g2_winner)},
-                                {'winner': name_to_code(g3_winner)},
+                                {'winner': 'A' if g1_winner == m.player_a else ('B' if g1_winner == m.player_b else None)},
+                                {'winner': 'A' if g2_winner == m.player_a else ('B' if g2_winner == m.player_b else None)},
+                                {'winner': 'A' if g3_winner == m.player_a else ('B' if g3_winner == m.player_b else None)},
                             ]
                             
                             client.update_match(
