@@ -49,7 +49,8 @@ class UserStore:
                 is_admin=entity.get("is_admin", False),
                 original_username=entity.get("original_username", entity.get("username")),
                 modified_by=entity.get("modified_by"),
-                modified_at=entity.get("modified_at")
+                modified_at=entity.get("modified_at"),
+                default_league_id=entity.get("default_league_id")
             )
 
         u = self.base.users.get(uid)
@@ -89,7 +90,8 @@ class UserStore:
                 is_admin=e.get("is_admin", False),
                 original_username=e.get("original_username", e.get("username")),
                 modified_by=e.get("modified_by"),
-                modified_at=e.get("modified_at")
+                modified_at=e.get("modified_at"),
+                default_league_id=e.get("default_league_id")
             ) for e in res]
         return list(self.base.users.values())
 

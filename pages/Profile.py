@@ -73,3 +73,47 @@ with st.form("change_password"):
                 st.success("Password updated successfully!")
             else:
                 st.error("Failed to update password.")
+
+st.divider()
+
+leagues = client.list_leagues()
+if leagues:
+    leagues.sort(key=lambda x: x.nr, reverse=True)
+    with st.form("default_league"):
+        st.subheader("Set Default League")
+        st.caption("Choose which league should be pre-selected when you log in.")
+        
+        options = [None] + leagues
+        
+        def format_option(opt):
+            if opt is None:
+                return "None (Latest League)"
+            return f"{opt.league_name} ({opt.nr})" if opt.league_name else f"League {opt.nr}"
+        
+        current_default_id = getattr(user, "default_league_id", None)
+        default_index = 0
+        if current_default_id:
+            for idx, l in enumerate(leagues):
+                if l.id == current_default_id:
+                    default_index = idx + 1
+                    break
+        
+        selected_default = st.selectbox(
+            "Default League",
+            options=options,
+            index=default_index,
+            format_func=format_option
+        )
+        
+        submit_default = st.form_submit_button("Save Default League")
+        if submit_default:
+            new_default_id = selected_default.id if selected_default else None
+            updated_user = client.update_user(user.id, default_league_id=new_default_id)
+            if updated_user:
+                st.session_state.user = updated_user
+                st.session_state.selected_league_id = new_default_id if new_default_id else leagues[0].id
+                st.session_state.current_league = selected_default if selected_default else leagues[0]
+                st.success("Default league preference updated!")
+                st.rerun()
+            else:
+                st.error("Failed to update default league preference.")

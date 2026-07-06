@@ -11,6 +11,7 @@ class User:
     original_username: str = ""
     modified_by: Optional[str] = None
     modified_at: Optional[str] = None
+    default_league_id: Optional[str] = None
 
 @dataclass
 class Deck:

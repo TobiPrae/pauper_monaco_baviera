@@ -13,6 +13,9 @@ if not selected_league:
     st.info("No leagues found. Please create a league in League Management.")
     st.stop()
 
+league_display_name = f"{selected_league.league_name} ({selected_league.nr})" if selected_league.league_name else f"League {selected_league.nr}"
+st.title(league_display_name)
+
 # Fetch rounds for the selected league
 all_rounds = client.list_rounds(selected_league.id)
 
