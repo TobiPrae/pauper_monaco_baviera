@@ -125,19 +125,41 @@ else:
             can_edit = st.session_state.user.is_admin or st.session_state.user.id in (m.player_a, m.player_b)
             with st.expander(f"{'🔴' if not any(g.winner for g in m.games) else '🟢'} {label}: {p1} vs {p2}"):
                 c = st.columns(3); c[0].metric(p1, summ['player_a_game_wins']); c[2].metric(p2, summ['player_b_game_wins'])
-                opts = [None, p1, p2]
-                start = st.selectbox("Starting player", opts, index=opts.index(m.starting_player), key=f"p_s_{m.id}", disabled=not can_edit)
+                # Map starting_player to ID if it's a legacy username
+                username_to_id = {u.username: u.id for u in all_users}
+                current_start_id = m.starting_player
+                if current_start_id and current_start_id not in (m.player_a, m.player_b):
+                    current_start_id = username_to_id.get(current_start_id, current_start_id)
+
+                opts = [None, m.player_a, m.player_b]
+
+                def format_player(uid):
+                    if uid is None: return "Select..."
+                    return user_map.get(uid, "Unknown")
+
+                start = st.selectbox(
+                    "Starting player", 
+                    opts, 
+                    index=opts.index(current_start_id) if current_start_id in opts else 0, 
+                    format_func=format_player,
+                    key=f"p_s_{m.id}", 
+                    disabled=not can_edit
+                )
                 gc = st.columns(3)
-                g1 = gc[0].selectbox("Game 1 winner", opts, index=opts.index(p1 if m.games[0].winner=='A' else (p2 if m.games[0].winner=='B' else None)), key=f"p_g1_{m.id}", disabled=not can_edit)
-                g2 = gc[1].selectbox("Game 2 winner", opts, index=opts.index(p1 if m.games[1].winner=='A' else (p2 if m.games[1].winner=='B' else None)), key=f"p_g2_{m.id}", disabled=not can_edit)
-                g3 = gc[2].selectbox("Game 3 winner", opts, index=opts.index(p1 if m.games[2].winner=='A' else (p2 if m.games[2].winner=='B' else None)), key=f"p_g3_{m.id}", disabled=not can_edit)
+                g1_winner_val = m.player_a if (len(m.games) >= 1 and m.games[0].winner == 'A') else (m.player_b if (len(m.games) >= 1 and m.games[0].winner == 'B') else None)
+                g2_winner_val = m.player_a if (len(m.games) >= 2 and m.games[1].winner == 'A') else (m.player_b if (len(m.games) >= 2 and m.games[1].winner == 'B') else None)
+                g3_winner_val = m.player_a if (len(m.games) >= 3 and m.games[2].winner == 'A') else (m.player_b if (len(m.games) >= 3 and m.games[2].winner == 'B') else None)
+                
+                g1 = gc[0].selectbox("Game 1 winner", opts, index=opts.index(g1_winner_val) if g1_winner_val in opts else 0, format_func=format_player, key=f"p_g1_{m.id}", disabled=not can_edit)
+                g2 = gc[1].selectbox("Game 2 winner", opts, index=opts.index(g2_winner_val) if g2_winner_val in opts else 0, format_func=format_player, key=f"p_g2_{m.id}", disabled=not can_edit)
+                g3 = gc[2].selectbox("Game 3 winner", opts, index=opts.index(g3_winner_val) if g3_winner_val in opts else 0, format_func=format_player, key=f"p_g3_{m.id}", disabled=not can_edit)
                 if can_edit:
                     video_link_val = st.text_input("Video Link", value=getattr(m, "video_link", "") or "", key=f"p_link_{m.id}")
                     if st.button("Save", key=f"p_save_{m.id}", use_container_width=True):
                         if start is None:
                             st.error("Please select a starting player.")
                         else:
-                            client.update_match(m.id, games=[{'winner': 'A' if g==p1 else ('B' if g==p2 else None)} for g in (g1,g2,g3)], starting_player=start, match_type=m.match_type, video_link=video_link_val)
+                            client.update_match(m.id, games=[{'winner': 'A' if g==m.player_a else ('B' if g==m.player_b else None)} for g in (g1,g2,g3)], starting_player=start, match_type=m.match_type, video_link=video_link_val)
                             st.rerun()
 
         for mt, label in [("QuarterFinal", "Quarterfinals"), ("SemiFinal", "Semifinals"), ("Final", "Final"), ("MatchFor3rd", "3rd Place")]:
