@@ -106,21 +106,27 @@ Interpretation note for **Most Likely**:
 
 ### League Predictor page structure (current)
 
-To reduce visual overload, the League Predictor UI is split into three tabs:
+To reduce visual overload, the League Predictor UI is split into four tabs:
 
-1. **Overview**
+1. **League Snapshot**
+   - First-screen KPI dashboard
+   - 4 cards: Title Favorite, Hottest Player, Bubble Fight, Game of the Week
+   - Compact view without expanders
+   - Uses existing `PredictionReport` data only (no extra simulation in UI)
+
+2. **Overview**
    - Playoff Dashboard (core charts only)
    - Scenario Explorer (3 cards + expandable details)
    - League Story (AI explanation + league insights)
    - Optional detailed playoff overview in an expander
 
-2. **Explainability**
+3. **Explainability**
    - Player explainability (with single-player filter)
    - Feature contribution waterfall chart
    - Contribution table and "🔍 Why?" panel
    - Optional expanded sections for expected ranking, critical matches, and schedule
 
-3. **Advanced**
+4. **Advanced**
    - What-if scenario overrides
    - Player detail inspector
    - Prediction confidence and diagnostics

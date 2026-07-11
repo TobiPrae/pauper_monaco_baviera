@@ -13,9 +13,13 @@ Der League Predictor soll schnell zeigen:
 ## UI-Überblick (Seitenaufbau)
 
 1. **Prediction Settings**
-2. **Top-Kennzahlen** (League, Simulations, Title Favorite, Bubble Teams)
-3. **Playoff Dashboard**
-4. **Playoff Quick Overview**
+2. **Tabs**
+   - **League Snapshot** (erste Ansicht)
+   - **Overview**
+   - **Explainability**
+   - **Advanced**
+3. **Playoff Dashboard** (im Tab *Overview*)
+4. **Playoff Quick Overview** (als Detailbereich im Tab *Overview*)
 5. Weitere Detailsektionen:
    - Playoff Odds
    - Champion Odds
@@ -152,6 +156,36 @@ Vor dem Quick Overview zeigt ein visuelles Dashboard:
 - Balken-Chart mit den Top-Playoff-Chancen
 - Segmentierung der Playoff-Race-Gruppen
 - Scatter-Chart für Playoff- vs. Champion-Wahrscheinlichkeit
+
+## League Snapshot (Top-Dashboard)
+
+Der erste Tab zeigt vier KPI-Karten im 2x2-Layout (mobil einspaltig), ohne Scrollen:
+
+- **🏆 Title Favorite**
+  - Spielername
+  - Champion-Wahrscheinlichkeit
+  - Progress-Bar
+  - Trend zur vorherigen Vorhersage-Aktualisierung
+- **🔥 Hottest Player**
+  - Spielername
+  - aktuelle Win-Streak
+  - letzte 5 Ergebnisse (W/D/L als farbige Boxen)
+  - Form-Score vs. Liga-Durchschnitt
+- **⚔ Bubble Fight**
+  - Spieler rund um den aktuellen Playoff-Cutoff
+  - nach Playoff-Wahrscheinlichkeit sortiert
+  - horizontalen Probability-Bars
+  - aktueller Cutoff hervorgehoben
+- **⚠ Game of the Week**
+  - verbleibendes Match mit größtem Playoff-Impact
+  - Impact-Bar
+  - geschätzter Winner-Gain / Loser-Loss in Playoff-Chance
+
+Hinweis zur Auswahl von **Game of the Week**:
+
+- basiert auf vorhandenen `match_probabilities` und `player_predictions`,
+- kombiniert Match-Unsicherheit mit Nähe der beteiligten Spieler zur Bubble/Cutoff-Zone,
+- führt keine zusätzliche Simulation in der UI aus.
 
 ## Playoff Quick Overview (user-friendly Layer)
 

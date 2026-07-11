@@ -1,5 +1,7 @@
+import html
 import json
-from typing import Dict
+from collections import defaultdict
+from typing import Dict, List
 
 import pandas as pd
 import plotly.express as px
@@ -30,6 +32,79 @@ st.caption("Deterministic, modular season projection engine")
 st.markdown(
     """
     <style>
+      .kpi-card {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 6px 20px rgba(2, 6, 23, 0.25);
+        margin-bottom: 10px;
+        transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+      }
+      .kpi-card:hover {
+        transform: translateY(-1px);
+        border-color: #334155;
+        box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35);
+      }
+      .kpi-title {
+        color: #cbd5e1;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      .kpi-main {
+        color: #f8fafc;
+        font-size: 1.45rem;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+      .kpi-sub {
+        color: #94a3b8;
+        font-size: 0.88rem;
+        margin-top: 0.3rem;
+      }
+      .kpi-helper {
+        color: #64748b;
+        font-size: 0.78rem;
+        margin-top: 0.2rem;
+      }
+      .inline-bar {
+        width: 100%;
+        background: #1e293b;
+        border-radius: 999px;
+        height: 8px;
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .inline-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 200ms ease;
+      }
+      .result-boxes {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .result-box {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+      }
+      .bubble-row {
+        margin-top: 8px;
+      }
+      .bubble-header {
+        display: flex;
+        justify-content: space-between;
+        color: #e2e8f0;
+        font-size: 0.84rem;
+      }
+      .cutoff-note {
+        color: #fbbf24;
+        font-size: 0.76rem;
+        margin-top: 2px;
+      }
       .scenario-card {
         border-radius: 14px;
         padding: 14px 16px;
@@ -133,15 +208,9 @@ if report is None:
     st.error("Could not build prediction report for selected league.")
     st.stop()
 
-top = report.player_predictions[0] if report.player_predictions else None
 playoff_race_players = sum(1 for p in report.player_predictions if 0.2 <= p.playoff_probability <= 0.8)
 overview = build_playoff_overview(report.player_predictions, report.league_summary.playoff_cut)
 likely_playoff = [entry["player_name"] for entry in overview if entry["status"] == "Very Likely"][: report.league_summary.playoff_cut]
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("League", report.league_name)
-col2.metric("Simulations", f"{report.simulation_metadata.simulations:,}")
-col3.metric("Title Favorite", top.player_name if top else "N/A")
-col4.metric("Bubble Teams", playoff_race_players)
 
 
 def _feature_label(name: str) -> str:
@@ -158,6 +227,185 @@ def _scenario_style(scenario_type: str) -> tuple[str, str]:
     if scenario_type == "bubble_race":
         return ("linear-gradient(135deg, #fef3c7, #fde68a)", "#b45309")
     return ("linear-gradient(135deg, #fee2e2, #fecaca)", "#b91c1c")
+
+
+def _safe_player_name(value: str) -> str:
+    return html.escape(value) if value else "N/A"
+
+
+def _result_for_player(match, player_id: str) -> str:
+    if match.result == "D":
+        return "D"
+    if (match.result == "A" and match.player_a_id == player_id) or (match.result == "B" and match.player_b_id == player_id):
+        return "W"
+    return "L"
+
+
+def _latest_results_by_player() -> Dict[str, List[str]]:
+    history: Dict[str, List[tuple[int, str, str]]] = defaultdict(list)
+    artifacts = report.internal_artifacts
+    if artifacts is None:
+        return {}
+    for match in artifacts.completed_matches:
+        history[match.player_a_id].append((match.round_nr, match.match_id, _result_for_player(match, match.player_a_id)))
+        history[match.player_b_id].append((match.round_nr, match.match_id, _result_for_player(match, match.player_b_id)))
+
+    ordered: Dict[str, List[str]] = {}
+    for player_id, matches in history.items():
+        matches.sort(key=lambda item: (item[0], item[1]))
+        ordered[player_id] = [result for _, _, result in matches]
+    return ordered
+
+
+def _win_streak(results: List[str]) -> int:
+    streak = 0
+    for result in reversed(results):
+        if result != "W":
+            break
+        streak += 1
+    return streak
+
+
+def _form_contribution(player) -> tuple[float, str]:
+    form_item = next((item for item in player.feature_contributions if item.feature_name == "current_form"), None)
+    if form_item is None:
+        return 0.0, "Current form contribution unavailable."
+    explanation = form_item.explanation or "Current form is captured from recent match performance."
+    return form_item.contribution, explanation
+
+
+snapshot_tab, overview_tab, explainability_tab, advanced_tab = st.tabs(
+    ["League Snapshot", "Overview", "Explainability", "Advanced"]
+)
+
+with snapshot_tab:
+    st.markdown("### League Snapshot")
+    st.caption(
+        f"{report.league_name} · {report.simulation_metadata.simulations:,} simulations · "
+        f"{playoff_race_players} players in the active bubble zone"
+    )
+
+    player_results = _latest_results_by_player()
+    favorite = max(report.player_predictions, key=lambda p: p.champion_probability, default=None)
+
+    trend_key = f"title_favorite_probs_{report.league_id}"
+    previous_title_probs = st.session_state.get(trend_key, {})
+    current_title_probs = {player.player_id: player.champion_probability for player in report.player_predictions}
+    favorite_trend = 0.0
+    if favorite is not None:
+        favorite_trend = favorite.champion_probability - float(previous_title_probs.get(favorite.player_id, favorite.champion_probability))
+    st.session_state[trend_key] = current_title_probs
+
+    form_scores = {}
+    for prediction in report.player_predictions:
+        score, _ = _form_contribution(prediction)
+        form_scores[prediction.player_id] = score
+    league_form_avg = (sum(form_scores.values()) / len(form_scores)) if form_scores else 0.0
+
+    hottest_player = max(
+        report.player_predictions,
+        key=lambda p: (_win_streak(player_results.get(p.player_id, [])), form_scores.get(p.player_id, 0.0), p.playoff_probability),
+        default=None,
+    )
+    hottest_results = player_results.get(hottest_player.player_id, []) if hottest_player else []
+    hottest_last5 = hottest_results[-5:]
+    hottest_streak = _win_streak(hottest_results) if hottest_player else 0
+    hottest_form_delta = form_scores.get(hottest_player.player_id, 0.0) - league_form_avg if hottest_player else 0.0
+
+    sorted_by_playoff = sorted(report.player_predictions, key=lambda p: p.playoff_probability, reverse=True)
+    cutoff_index = max(0, min(report.league_summary.playoff_cut - 1, len(sorted_by_playoff) - 1)) if sorted_by_playoff else 0
+    bubble_start = max(0, cutoff_index - 1)
+    bubble_end = min(len(sorted_by_playoff), cutoff_index + 3)
+    bubble_players = sorted_by_playoff[bubble_start:bubble_end] if sorted_by_playoff else []
+    if len(bubble_players) < min(3, len(sorted_by_playoff)):
+        bubble_players = sorted_by_playoff[: min(4, len(sorted_by_playoff))]
+    cutoff_player_id = sorted_by_playoff[cutoff_index].player_id if sorted_by_playoff else ""
+    playoff_by_id = {player.player_id: player.playoff_probability for player in report.player_predictions}
+
+    def _match_impact_score(match) -> float:
+        uncertainty = 1.0 - max(match.player_a_win_probability, match.draw_probability, match.player_b_win_probability)
+        cutoff_prob = sorted_by_playoff[cutoff_index].playoff_probability if sorted_by_playoff else 0.5
+        proximity_a = 1.0 - min(abs(playoff_by_id.get(match.player_a_id, 0.0) - cutoff_prob) / 0.5, 1.0)
+        proximity_b = 1.0 - min(abs(playoff_by_id.get(match.player_b_id, 0.0) - cutoff_prob) / 0.5, 1.0)
+        return uncertainty * (0.55 + 0.45 * max(proximity_a, proximity_b))
+
+    impact_match = max(report.match_probabilities, key=_match_impact_score, default=None)
+    impact_score = _match_impact_score(impact_match) if impact_match else 0.0
+    impact_delta = min(0.32, 0.07 + impact_score * 0.28)
+    winner_gain_pct = impact_delta * 100
+    loser_loss_pct = impact_delta * 90
+
+    row1_col1, row1_col2 = st.columns(2)
+    with row1_col1:
+        if favorite is not None:
+            trend_icon = "▲" if favorite_trend >= 0 else "▼"
+            trend_color = "#22c55e" if favorite_trend >= 0 else "#ef4444"
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                  <div class="kpi-title">🏆 Title Favorite</div>
+                  <div class="kpi-main">{_safe_player_name(favorite.player_name)}</div>
+                  <div class="kpi-sub">{favorite.champion_probability:.0%} champion probability</div>
+                  <div class="inline-bar"><div class="inline-bar-fill" style="width:{favorite.champion_probability * 100:.1f}%; background:#3b82f6;"></div></div>
+                  <div class="kpi-helper" style="color:{trend_color};">{trend_icon} {favorite_trend:+.1%} since previous prediction refresh</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    with row1_col2:
+        if hottest_player is not None:
+            color_map = {"W": "#22c55e", "D": "#eab308", "L": "#ef4444"}
+            result_boxes = "".join(
+                [f'<span class="result-box" style="background:{color_map.get(result, "#475569")}"></span>' for result in hottest_last5]
+            )
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                  <div class="kpi-title">🔥 Hottest Player</div>
+                  <div class="kpi-main">{_safe_player_name(hottest_player.player_name)}</div>
+                  <div class="kpi-sub">Current win streak: {hottest_streak}</div>
+                  <div class="result-boxes">{result_boxes}</div>
+                  <div class="kpi-helper">Form score: {form_scores.get(hottest_player.player_id, 0.0):+.1%} vs league avg {league_form_avg:+.1%} ({hottest_form_delta:+.1%} delta)</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    row2_col1, row2_col2 = st.columns(2)
+    with row2_col1:
+        bubble_rows = []
+        for player in bubble_players:
+            cutoff_note = "<div class='cutoff-note'>Current playoff cutoff</div>" if player.player_id == cutoff_player_id else ""
+            bubble_rows.append(
+                (
+                    f'<div class="bubble-row">'
+                    f'<div class="bubble-header"><span>{_safe_player_name(player.player_name)}</span><span>{player.playoff_probability:.0%}</span></div>'
+                    f'<div class="inline-bar"><div class="inline-bar-fill" style="width:{player.playoff_probability * 100:.1f}%; background:{"#f59e0b" if player.player_id == cutoff_player_id else "#22c55e"};"></div></div>'
+                    f"{cutoff_note}"
+                    f"</div>"
+                )
+            )
+        bubble_content = "".join(bubble_rows) if bubble_rows else "<div class='kpi-sub'>No active bubble race.</div>"
+        st.markdown(
+            f'<div class="kpi-card"><div class="kpi-title">⚔ Bubble Fight</div>{bubble_content}</div>',
+            unsafe_allow_html=True,
+        )
+
+    with row2_col2:
+        if impact_match is not None:
+            impact_label = f"{_safe_player_name(impact_match.player_a_name)} vs {_safe_player_name(impact_match.player_b_name)}"
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                  <div class="kpi-title">⚠ Game of the Week</div>
+                  <div class="kpi-main">{impact_label}</div>
+                  <div class="kpi-sub">Playoff impact: {impact_score:.0%}</div>
+                  <div class="inline-bar"><div class="inline-bar-fill" style="width:{impact_score * 100:.1f}%; background:#f59e0b;"></div></div>
+                  <div class="kpi-helper">Winner gains ≈ {winner_gain_pct:.1f}% playoff probability · Loser loses ≈ {loser_loss_pct:.1f}%.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 scenario_reports = getattr(report, "scenario_reports", [])
 if not scenario_reports and report.internal_artifacts is not None:
@@ -213,8 +461,6 @@ insight_df = pd.DataFrame(
         {"Insight": "Strongest Negative Driver", "Value": report.league_insights.get("strongest_negative_driver", "N/A")},
     ]
 )
-
-overview_tab, explainability_tab, advanced_tab = st.tabs(["Overview", "Explainability", "Advanced"])
 
 with overview_tab:
     st.subheader("Playoff Dashboard")
