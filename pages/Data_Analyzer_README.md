@@ -8,12 +8,95 @@ Die Seite dient dazu, alle relevanten Match- und Deckdaten für ausgewählte Lig
 
 ## Hauptbestandteile
 
+### Seitenreihenfolge
+
+Die Seite beginnt mit der Ligaauswahl als globalem Filter. Dieser Filter wirkt auf alle folgenden Datenabschnitte.
+
+1. Ligaauswahl
+2. Meta Stats
+3. Career Timeline
+4. Hall of Fame
+5. Match-Daten-Tabelle
+
 ### 1. Ligaauswahl
 
 - `st.multiselect` erlaubt die Auswahl einer oder mehrerer Ligen.
-- Nur Daten der ausgewählten Ligen werden in den nachfolgenden Tabellen und Visualisierungen verwendet.
+- Standardmäßig sind alle Ligen ausgewählt, deren Name `monaco` enthält.
+- Die Auswahl beeinflusst alle nachfolgenden Datenvisualisierungen auf der Seite.
 
-### 2. Match-Daten-Tabelle
+### 2. Meta Stats
+
+Die Sektion `Meta Stats` wertet die ausgewählten Ligen auf Deck-Ebene aus.
+
+Berechnete Kennzahlen pro Deck:
+
+- `Matches`: Anzahl aller gespielten Matches des Decks
+- `Wins`: Anzahl gewonnener Matches des Decks
+- `Draws`: Anzahl unentschiedener Matches des Decks
+- `Leagues`: Anzahl unterschiedlicher Ligen, in denen das Deck auftaucht
+- `Win Rate`: Gewinnrate über alle eingegebenen Matches (Anzahl gewonnener Matches / Anzahl teilgenommener Matches)
+- `Winrate (incl Draw)`: Gewinnrate inklusive Unentschieden, wobei ein Draw als 50% Sieg gewertet wird
+
+Sortierung:
+
+- Primär nach `Winrate (incl Draw)` absteigend
+- Sekundär nach `Win Rate` absteigend
+- Tertiär nach Wins absteigend
+
+Die Berechnungen umfassen alle Matchtypen der ausgewählten Ligen, also sowohl reguläre Runden als auch Playoff-Matches. Nur abgeschlossene Matches mit mindestens einem gewerteten Spiel werden berücksichtigt.
+
+### 2. Career Timeline
+
+Die Timeline zeigt pro Spieler die chronologische Karriere über alle ausgewählten Saisons.
+
+- Es werden nur Spieler aus Ligen berücksichtigt, deren Name `monaco` enthält.
+- Spieler werden nach ihrer Winrate sortiert (höchste Winrate zuerst).
+
+Visualisierung:
+
+- Jeder Spieler erhält eine horizontale Linie mit kleinen farbigen Kästchen.
+- Farbe der Kästchen:
+  - Grün für einen Sieg
+  - Gelb für ein Unentschieden
+  - Rot für eine Niederlage
+- Älteste Spiele erscheinen links, neueste rechts.
+- Zwischen verschiedenen Saisons bzw. Liga-IDs erscheint eine dünne vertikale Trennlinie.
+- Playoff-Matches (`SemiFinal`, `Final`, `MatchFor3rd`) werden in der richtigen Liga nach den regulären Runden einsortiert, aber innerhalb des Liga-Blocks angezeigt.
+
+Tooltip-Informationen pro Match:
+
+- Gegner
+- Saison
+- Runde
+- Eigenes Deck
+- Gegnerdeck
+- Ergebnis (z. B. `2:0`, `2:1`, `1:2`)
+
+### Zusammenfassung pro Spieler
+
+Über der Timeline wird pro Spieler angezeigt:
+
+- Match Win Rate
+- Aktuelle Serie (z. B. `W-W-L-W`)
+- Längste Siegesserie
+- Gesamtbilanz (Wins-Draws-Losses)
+
+### 3. Hall of Fame
+
+Die Hall of Fame listet die Liga-Champions der ausgewählten Ligen in einer separaten Tabelle.
+
+Jeder Eintrag enthält:
+
+- `League`: Liga-Name
+- `Player`: Gewinner der Liga
+- `Deck`: Das zugewiesene Deck des Gewinners
+
+Weitere Regeln:
+
+- Die Hall of Fame wird auf die ausgewählten Ligen angewendet.
+- Die Tabelle ist nach Datum sortiert, neueste abgeschlossene Saisons oben.
+
+### 4. Match-Daten-Tabelle
 
 Die Haupttabelle listet alle Matches der ausgewählten Ligen auf. Jede Zeile enthält:
 
@@ -39,84 +122,6 @@ Die Haupttabelle listet alle Matches der ausgewählten Ligen auf. Jede Zeile ent
 - Video Link
 
 Die Tabelle wird nach Liga-Nummer, Rundennummer und Match-ID sortiert.
-
-### 3. Meta Stats
-
-Die Sektion `Meta Stats` wertet die ausgewählten Ligen auf Deck-Ebene aus.
-
-Berechnete Kennzahlen pro Deck:
-
-- `Wins`: Anzahl gewonnener Matches des Decks
-- `Draws`: Anzahl unentschiedener Matches des Decks
-- `Leagues`: Anzahl unterschiedlicher Ligen, in denen das Deck auftaucht
-- `Win Rate`: Gewinnrate über alle eingegebenen Matches (Anzahl gewonnener Matches / Anzahl teilgenommener Matches)
-- `Winrate (incl Draw)`: Gewinnrate inklusive Unentschieden, wobei ein Draw als 50% Sieg gewertet wird
-
-Sortierung:
-
-- Primär nach `Winrate (incl Draw)` absteigend
-- Sekundär nach `Win Rate` absteigend
-- Tertiär nach Wins absteigend
-
-Die Berechnungen umfassen alle Matchtypen der ausgewählten Ligen, also sowohl reguläre Runden als auch Playoff-Matches. Nur abgeschlossene Matches mit mindestens einem gewerteten Spiel werden berücksichtigt.
-
-### 4. Career Timeline
-
-Die Timeline zeigt pro Spieler die chronologische Karriere über alle ausgewählten Saisons.
-
-Visualisierung:
-
-- Jeder Spieler erhält eine horizontale Linie mit kleinen farbigen Kästchen.
-- Farbe der Kästchen:
-  - Grün für einen Sieg
-  - Gelb für ein Unentschieden
-  - Rot für eine Niederlage
-- Älteste Spiele erscheinen links, neueste rechts.
-- Zwischen verschiedenen Saisons erscheint eine dünne vertikale Trennlinie.
-- Playoff-Matches (`SemiFinal`, `Final`, `MatchFor3rd`) werden in der richtigen Liga nach den regulären Runden einsortiert.
-
-Tooltip-Informationen pro Match:
-
-- Gegner
-- Saison
-- Runde
-- Eigenes Deck
-- Gegnerdeck
-- Ergebnis (z. B. `2:0`, `2:1`, `1:2`)
-
-### Zusammenfassung pro Spieler
-
-Über der Timeline wird pro Spieler angezeigt:
-
-- Match Win Rate
-- Aktuelle Serie (z. B. `W-W-L-W`)
-- Längste Siegesserie
-- Gesamtbilanz (Wins-Draws-Losses)
-
-### 5. Hall of Fame
-
-Die Hall of Fame listet die Liga-Champions in einer separaten Tabelle.
-
-Jeder Eintrag enthält:
-
-- `League`: Liga-Name
-- `Player`: Gewinner der Liga
-- `Deck`: Das zugewiesene Deck des Gewinners
-
-Die Hall of Fame ist nicht vom Ligafilter betroffen.
-
-Weitere Regeln:
-
-- Es werden nur Ligen mit `Monaco` im Namen erfasst.
-- Die aktuell laufende Liga wird nicht aufgenommen.
-- Die Tabelle ist nach Datum sortiert, neueste abgeschlossene Saisons oben.
-
-Über der Timeline wird pro Spieler angezeigt:
-
-- Match Win Rate
-- Aktuelle Serie (z. B. `W-W-L-W`)
-- Längste Siegesserie
-- Gesamtbilanz (Wins-Draws-Losses)
 
 ## Implementierungsdetails
 
