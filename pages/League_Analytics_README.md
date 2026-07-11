@@ -10,47 +10,30 @@ Die Seite dient dazu, alle relevanten Match- und Deckdaten für ausgewählte Lig
 
 ### Seitenreihenfolge
 
-Die Seite beginnt mit der Ligaauswahl als globalem Filter. Dieser Filter wirkt auf alle folgenden Datenabschnitte mit Ausnahme der Head-to-Head-Analytics- und Hall-of-Fame-Sektion.
+Die Seite verwendet keine globale Ligaauswahl mehr. Für die Career Timeline gibt es einen eigenen lokalen Ligafilter in der Sektion.
 
-1. Ligaauswahl
-2. Meta Stats
-3. Career Timeline
-4. Head-to-Head Analytics
-5. Hall of Fame
-6. Match-Daten-Tabelle
+1. Deck vs Deck Analytics
+2. Career Timeline
+3. Head-to-Head Analytics
+4. Hall of Fame
 
-### 1. Ligaauswahl
+### 1. Deck vs Deck Analytics
 
-- `st.multiselect` erlaubt die Auswahl einer oder mehrerer Ligen.
-- Standardmäßig sind alle Ligen ausgewählt, deren Name `monaco` enthält.
-- Die Auswahl beeinflusst Meta Stats, Career Timeline und die Match-Daten-Tabelle.
+Die Sektion `Deck vs Deck Analytics` verwendet dasselbe matchbasierte Monaco-Dataset wie Head-to-Head (unabhängig vom Timeline-Filter) und berücksichtigt nur abgeschlossene Matches der Typen `Round`, `SemiFinal`, `Final`, `MatchFor3rd`.
 
-### 2. Meta Stats
-
-Die Sektion `Meta Stats` wertet die ausgewählten Ligen auf Deck-Ebene aus.
-
-Berechnete Kennzahlen pro Deck:
-
-- `Matches`: Anzahl aller gespielten Matches des Decks
-- `Wins`: Anzahl gewonnener Matches des Decks
-- `Draws`: Anzahl unentschiedener Matches des Decks
-- `Leagues`: Anzahl unterschiedlicher Ligen, in denen das Deck auftaucht
-- `Win Rate`: Gewinnrate über alle eingegebenen Matches (Anzahl gewonnener Matches / Anzahl teilgenommener Matches)
-- `Winrate (incl Draw)`: Gewinnrate inklusive Unentschieden, wobei ein Draw als 50% Sieg gewertet wird
-
-Sortierung:
-
-- Primär nach `Winrate (incl Draw)` absteigend
-- Sekundär nach `Win Rate` absteigend
-- Tertiär nach Wins absteigend
-
-Die Berechnungen umfassen alle Matchtypen der ausgewählten Ligen, also sowohl reguläre Runden als auch Playoff-Matches. Nur abgeschlossene Matches mit mindestens einem gewerteten Spiel werden berücksichtigt.
+- Matrix mit Deck (Zeilen) vs Deck (Spalten) im Format `Wins-Losses-Draws` aus Sicht der Zeile.
+- Sortierung der Decks nach übergreifender Winrate.
+- Farb-Codierung pro Zelle basiert auf `(wins-losses)/(wins+losses)`.
+- Summary-Karten: `Most Played Matchup`, `Highest Winrate Matchup`, `Worst Matchup`, `Most Balanced Matchup`, `Largest Sample Size`.
+- Expander mit Match-Details inklusive `Winner` und klickbarem `Video Link`.
+- Zusätzliche Tabelle `Deck Matchup Rankings`.
 
 ### 2. Career Timeline
 
 Die Timeline zeigt pro Spieler die chronologische Karriere über alle ausgewählten Saisons.
 
 - Es werden nur Spieler aus Ligen berücksichtigt, deren Name `monaco` enthält.
+- Ein lokaler `st.multiselect` in der Timeline-Sektion steuert, welche Monaco-Ligen einfließen.
 - Spieler werden nach ihrer Winrate sortiert (höchste Winrate zuerst).
 
 Visualisierung:
@@ -82,7 +65,7 @@ Tooltip-Informationen pro Match:
 - Längste Siegesserie
 - Gesamtbilanz (Wins-Draws-Losses)
 
-### 4. Head-to-Head Analytics
+### 3. Head-to-Head Analytics
 
 Die neue Head-to-Head-Analytics-Sektion zeigt die historische Bilanz zwischen Spielern in einer Matrix.
 
@@ -93,7 +76,7 @@ Die neue Head-to-Head-Analytics-Sektion zeigt die historische Bilanz zwischen Sp
 - Über einen Filter lassen sich `All Matches`, `Regular Season` und `Playoffs Only` auswählen.
 - Ein Expander darunter zeigt die Details aller historischen Matches für den ausgewählten Spieler-gegen-Spieler-Vergleich.
 
-### 5. Hall of Fame
+### 4. Hall of Fame
 
 Die Hall of Fame listet die Liga-Champions der Monaco-Ligen in einer separaten Tabelle.
 
@@ -105,51 +88,25 @@ Jeder Eintrag enthält:
 
 Weitere Regeln:
 
-- Die Hall of Fame ist unabhängig vom Seitenfilter (`selected_leagues`).
+- Die Hall of Fame ist unabhängig vom Career-Timeline-Filter.
 - Berücksichtigt werden nur Ligen mit `league_name` enthält `monaco`.
 - Zusätzlich werden nur abgeschlossene Ligen mit `playoffs_closed == True` berücksichtigt, mit einer Ausnahme für Liga `nr == 1`.
 - Die Tabelle ist nach Datum sortiert, neueste abgeschlossene Saisons oben.
-
-### 6. Match-Daten-Tabelle
-
-Die Haupttabelle listet alle Matches der ausgewählten Ligen auf. Jede Zeile enthält:
-
-- League Name
-- League Number
-- League ID
-- Round Number
-- Round Start
-- Round End
-- Match ID
-- Match Type
-- Player A
-- Deck A
-- Player B
-- Deck B
-- Starting Player
-- Match Result
-- Score A
-- Score B
-- Points A
-- Points B
-- Total Games
-- Video Link
-
-Die Tabelle wird nach Liga-Nummer, Rundennummer und Match-ID sortiert.
 
 ## Implementierungsdetails
 
 - `client.list_leagues()`, `client.list_rounds()`, `client.list_league_players()`, `client.list_matches()` und `client.list_users()` werden verwendet, um Daten aus dem Datastore zu laden.
 - `compute_match_summary(match)` aus `models.py` berechnet Match-Ergebnisse und Spielwerte.
-- Matchdaten werden zur Tabelle und zur Timeline aus der gefilterten Ligaauswahl generiert.
-- Die Head-to-Head-Sektion verwendet ein eigenes, von der allgemeinen Ligaauswahl entkoppeltes Match-Set und enthält einen zusätzlichen Match-Filter für `All Matches`, `Regular Season` und `Playoffs Only`.
+- Matchdaten werden zur Timeline aus der dort gewählten lokalen Ligaauswahl generiert.
+- `build_deck_matchup_matrix(matches)` kapselt die Berechnung für Deck-vs-Deck-Matrix, Summary, Details und Meta-Statistiken (`@st.cache_data`).
+- Die Head-to-Head-Sektion verwendet ein eigenes, vom Timeline-Filter entkoppeltes Match-Set und enthält einen zusätzlichen Match-Filter für `All Matches`, `Regular Season` und `Playoffs Only`.
 - Für Head-to-Head werden nur Ligen berücksichtigt, deren Name `monaco` enthält.
-- Die Hall of Fame verwendet ein eigenes Monaco-Liga-Set, unabhängig von der Seitenauswahl.
+- Die Hall of Fame verwendet ein eigenes Monaco-Liga-Set, unabhängig von der Timeline-Auswahl.
 - Die Deckzuordnung verwendet die Mitgliedschaften (`LeaguePlayer`) der Liga, um jedem Spieler sein aktuelles Deck für diese Liga zuzuordnen.
 
 ## Hinweise
 
-- Die Seite zeigt aktuell nur Matches an, deren `round_id` zu einem ausgewählten Liga-Round gehört.
+- Die Seite zeigt in der Career Timeline nur Matches an, deren `round_id` zu den im Timeline-Filter ausgewählten Liga-Rounds gehört.
 - Wenn ein Deck nicht gefunden wird, wird `No Deck` verwendet.
 - Saisons werden über den `league.nr` und den `league.league_name` identifiziert.
 - Die Timeline sortiert Matches nach `round.start_date`, `season_number`, `round_number`, Match-Typ und `match_id`.
