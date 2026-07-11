@@ -1,6 +1,6 @@
-# Data Analyzer Page
+# League Analytics Page
 
-Diese Dokumentation beschreibt die Logik und Darstellungen der Streamlit-Seite `Data Analyzer` im Projekt.
+Diese Dokumentation beschreibt die Logik und Darstellungen der Streamlit-Seite `League Analytics` im Projekt.
 
 ## Zweck
 
@@ -10,19 +10,20 @@ Die Seite dient dazu, alle relevanten Match- und Deckdaten für ausgewählte Lig
 
 ### Seitenreihenfolge
 
-Die Seite beginnt mit der Ligaauswahl als globalem Filter. Dieser Filter wirkt auf alle folgenden Datenabschnitte.
+Die Seite beginnt mit der Ligaauswahl als globalem Filter. Dieser Filter wirkt auf alle folgenden Datenabschnitte mit Ausnahme der Head-to-Head-Analytics- und Hall-of-Fame-Sektion.
 
 1. Ligaauswahl
 2. Meta Stats
 3. Career Timeline
-4. Hall of Fame
-5. Match-Daten-Tabelle
+4. Head-to-Head Analytics
+5. Hall of Fame
+6. Match-Daten-Tabelle
 
 ### 1. Ligaauswahl
 
 - `st.multiselect` erlaubt die Auswahl einer oder mehrerer Ligen.
 - Standardmäßig sind alle Ligen ausgewählt, deren Name `monaco` enthält.
-- Die Auswahl beeinflusst alle nachfolgenden Datenvisualisierungen auf der Seite.
+- Die Auswahl beeinflusst Meta Stats, Career Timeline und die Match-Daten-Tabelle.
 
 ### 2. Meta Stats
 
@@ -81,9 +82,20 @@ Tooltip-Informationen pro Match:
 - Längste Siegesserie
 - Gesamtbilanz (Wins-Draws-Losses)
 
-### 3. Hall of Fame
+### 4. Head-to-Head Analytics
 
-Die Hall of Fame listet die Liga-Champions der ausgewählten Ligen in einer separaten Tabelle.
+Die neue Head-to-Head-Analytics-Sektion zeigt die historische Bilanz zwischen Spielern in einer Matrix.
+
+- Zeilen und Spalten listet Spieler alphabetisch.
+- Die Diagonale bleibt leer.
+- Jede Zelle zeigt das Format `Wins-Losses-Draws` aus Sicht des Zeilenspielers.
+- Die Hintergrundfarbe verwendet einen kontinuierlichen Skalenverlauf von rot (negative Bilanz) über grau (ausgeglichen) zu grün (positive Bilanz).
+- Über einen Filter lassen sich `All Matches`, `Regular Season` und `Playoffs Only` auswählen.
+- Ein Expander darunter zeigt die Details aller historischen Matches für den ausgewählten Spieler-gegen-Spieler-Vergleich.
+
+### 5. Hall of Fame
+
+Die Hall of Fame listet die Liga-Champions der Monaco-Ligen in einer separaten Tabelle.
 
 Jeder Eintrag enthält:
 
@@ -93,10 +105,12 @@ Jeder Eintrag enthält:
 
 Weitere Regeln:
 
-- Die Hall of Fame wird auf die ausgewählten Ligen angewendet.
+- Die Hall of Fame ist unabhängig vom Seitenfilter (`selected_leagues`).
+- Berücksichtigt werden nur Ligen mit `league_name` enthält `monaco`.
+- Zusätzlich werden nur abgeschlossene Ligen mit `playoffs_closed == True` berücksichtigt, mit einer Ausnahme für Liga `nr == 1`.
 - Die Tabelle ist nach Datum sortiert, neueste abgeschlossene Saisons oben.
 
-### 4. Match-Daten-Tabelle
+### 6. Match-Daten-Tabelle
 
 Die Haupttabelle listet alle Matches der ausgewählten Ligen auf. Jede Zeile enthält:
 
@@ -127,7 +141,10 @@ Die Tabelle wird nach Liga-Nummer, Rundennummer und Match-ID sortiert.
 
 - `client.list_leagues()`, `client.list_rounds()`, `client.list_league_players()`, `client.list_matches()` und `client.list_users()` werden verwendet, um Daten aus dem Datastore zu laden.
 - `compute_match_summary(match)` aus `models.py` berechnet Match-Ergebnisse und Spielwerte.
-- Matchdaten werden zur Tabelle und zur Timeline aus derselben gefilterten Auswahl generiert, um Konsistenz sicherzustellen.
+- Matchdaten werden zur Tabelle und zur Timeline aus der gefilterten Ligaauswahl generiert.
+- Die Head-to-Head-Sektion verwendet ein eigenes, von der allgemeinen Ligaauswahl entkoppeltes Match-Set und enthält einen zusätzlichen Match-Filter für `All Matches`, `Regular Season` und `Playoffs Only`.
+- Für Head-to-Head werden nur Ligen berücksichtigt, deren Name `monaco` enthält.
+- Die Hall of Fame verwendet ein eigenes Monaco-Liga-Set, unabhängig von der Seitenauswahl.
 - Die Deckzuordnung verwendet die Mitgliedschaften (`LeaguePlayer`) der Liga, um jedem Spieler sein aktuelles Deck für diese Liga zuzuordnen.
 
 ## Hinweise

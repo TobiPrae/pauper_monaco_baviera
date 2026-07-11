@@ -85,7 +85,7 @@ with st.sidebar:
 league = st.Page("pages/League.py", title="League")
 round_view = st.Page("pages/Round_View.py", title="Match Day")
 playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
-data_analyzer = st.Page("pages/Data_Analyzer.py", title="Data Analyzer")
+data_analyzer = st.Page("pages/League_Analytics.py", title="League Analytics")
 player_management = st.Page("pages/Player_Management.py", title="Manage Users")
 league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
 deck_management = st.Page("pages/Deck_Management.py", title="Manage Decks")
