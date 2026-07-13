@@ -198,9 +198,13 @@ else:
                 current_win = 0
         record = f"{wins}-{draws}-{losses}"
         header_html = (
-            f"<div class=\"player-row-header\"><strong>{html_mod.escape(events[0]['player_name'])}</strong> | "
-            f"Win Rate: {win_rate} | Current Streak: {html_mod.escape(current_series)} | "
-            f"Longest Win Streak: {longest_win} | Record: {record}</div>"
+            f"<div class=\"player-row-header\">"
+            f"<span class=\"player-name\"><strong>{html_mod.escape(events[0]['player_name'])}</strong></span>"
+            f"<span class=\"player-stat-item\">Win Rate: {win_rate}</span>"
+            f"<span class=\"player-stat-item\">Streak: {html_mod.escape(current_series)}</span>"
+            f"<span class=\"player-stat-item\">Longest Win: {longest_win}</span>"
+            f"<span class=\"player-stat-item\">Record: {record}</span>"
+            f"</div>"
         )
         timeline_html += f'<div class="player-row">{header_html}<div class="player-timeline">'
         previous_season = None
@@ -227,15 +231,52 @@ else:
     <style>
         body {
             font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 8px;
+            overflow: hidden;
         }
-        .timeline-board { display: flex; flex-direction: column; gap: 18px; }
-        .player-row { display: flex; flex-direction: column; gap: 6px; }
-        .player-row-header { font-size: 0.95rem; color: #222; font-family: inherit; }
-        .player-timeline { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 8px 0; }
+        .timeline-board { display: flex; flex-direction: column; gap: 20px; }
+        .player-row { display: flex; flex-direction: column; gap: 8px; }
+        .player-row-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            row-gap: 4px;
+            column-gap: 8px;
+            font-size: 0.9rem;
+            color: #222;
+            font-family: inherit;
+        }
+        .player-name {
+            font-size: 0.95rem;
+            margin-right: 4px;
+        }
+        .player-stat-item {
+            background-color: #f1f3f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            color: #495057;
+            white-space: nowrap;
+            border: 1px solid #dee2e6;
+        }
+        .player-timeline { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 6px 0; }
         .timeline-square { width: 18px; height: 18px; min-width: 18px; border-radius: 3px; border: 1px solid #999; }
         .season-separator { width: 2px; height: 24px; background: #444; margin: 0 6px; }
         .player-timeline::-webkit-scrollbar { height: 8px; }
         .player-timeline::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 999px; }
+        
+        @media (max-width: 480px) {
+            .player-row-header {
+                font-size: 0.82rem;
+                column-gap: 4px;
+            }
+            .player-stat-item {
+                font-size: 0.72rem;
+                padding: 1px 6px;
+            }
+        }
     </style>
     '''
-    html(style + timeline_html, height=320 + len(player_timelines) * 42)
+    iframe_height = 60 + len(player_timelines) * 110
+    html(style + timeline_html, height=iframe_height)
