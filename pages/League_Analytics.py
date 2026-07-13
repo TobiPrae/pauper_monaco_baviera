@@ -590,16 +590,46 @@ else:
     if tooltip_df.values.any():
         matrix_styler = matrix_styler.set_tooltips(tooltip_df)
     matrix_html = matrix_styler.to_html()
-    matrix_html = f"""
+    matrix_height = min(900, 140 + len(matrix_df.index) * 60)
+    scroll_height = matrix_height - 40
+    scrollable_matrix_html = f"""
     <style>
-        body, table {{
+        .matrix-scroll {{
+            width: 100%;
+            height: {scroll_height}px;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }}
+        table {{
+            border-collapse: collapse;
             font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }}
+        /* Sticky headers */
+        .matrix-scroll table thead th {{
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #ffffff;
+        }}
+        .matrix-scroll table th.row_heading {{
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            background: #f7f7f7;
+        }}
+        .matrix-scroll table th.blank {{
+            position: sticky;
+            left: 0;
+            top: 0;
+            z-index: 4;
+            background: #ffffff;
+        }}
     </style>
-    {matrix_html}
+    <div class="matrix-scroll">
+        {matrix_html}
+    </div>
     """
-    matrix_height = min(900, 140 + len(matrix_df.index) * 60)
-    html(matrix_html, height=matrix_height)
+    html(scrollable_matrix_html, height=matrix_height)
 
     with st.expander("Head-to-Head Match Details"):
         players = list(matrix_df.index)
