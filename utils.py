@@ -1,4 +1,5 @@
 from typing import List, Dict, Tuple
+from urllib.parse import urlparse
 from models import Match
 
 
@@ -99,3 +100,15 @@ def validate_password(password: str, confirm_password: str = None) -> Tuple[bool
     if confirm_password is not None and password != confirm_password:
         return False, "Passwords do not match"
     return True, ""
+
+
+def validate_video_link(video_link: str) -> Tuple[bool, str, str]:
+    """Validate and normalize optional video link input."""
+    normalized = (video_link or "").strip()
+    if not normalized:
+        return True, "", ""
+
+    parsed = urlparse(normalized)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return False, "", "Video Link must be a valid URL starting with http:// or https://"
+    return True, normalized, ""

@@ -1,6 +1,6 @@
 import streamlit as st
 from datastore_client import get_client
-from utils import compute_standings
+from utils import compute_standings, validate_video_link
 from auth import require_auth
 from models import compute_match_summary
 
@@ -159,8 +159,18 @@ else:
                         if start is None:
                             st.error("Please select a starting player.")
                         else:
-                            client.update_match(m.id, games=[{'winner': 'A' if g==m.player_a else ('B' if g==m.player_b else None)} for g in (g1,g2,g3)], starting_player=start, match_type=m.match_type, video_link=video_link_val)
-                            st.rerun()
+                            is_valid_video_link, normalized_video_link, video_link_error = validate_video_link(video_link_val)
+                            if not is_valid_video_link:
+                                st.error(video_link_error)
+                            else:
+                                client.update_match(
+                                    m.id,
+                                    games=[{'winner': 'A' if g==m.player_a else ('B' if g==m.player_b else None)} for g in (g1, g2, g3)],
+                                    starting_player=start,
+                                    match_type=m.match_type,
+                                    video_link=normalized_video_link,
+                                )
+                                st.rerun()
 
         for mt, label in [("QuarterFinal", "Quarterfinals"), ("SemiFinal", "Semifinals"), ("Final", "Final"), ("MatchFor3rd", "3rd Place")]:
             ms = [m for m in playoff_matches if m.match_type == mt]
