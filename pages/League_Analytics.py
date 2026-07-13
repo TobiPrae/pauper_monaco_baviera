@@ -191,7 +191,7 @@ def build_head_to_head_matrix(match_records, filter_option):
         return f'background-color: rgb({red},{green},0);'
 
     def _apply_colors(df):
-        return df.applymap(_color_cell)
+        return df.map(_color_cell)
 
     summary = {
         'closest': None,
@@ -232,320 +232,10 @@ def build_head_to_head_matrix(match_records, filter_option):
     return matrix_df, tooltip_df, summary, details_df
 
 
-@st.cache_data
-def build_deck_matchup_matrix(matches):
-    included_match_types = {'Round', 'SemiFinal', 'Final', 'MatchFor3rd'}
-    normalized_matches = []
-    for rec in matches:
-        if len(rec) < 17:
-            continue
-        match_type = rec[2]
-        total_games = rec[9]
-        if match_type not in included_match_types or total_games == 0:
-            continue
-        normalized_matches.append({
-            'league_name': rec[0],
-            'round_number': rec[1],
-            'match_type': rec[2],
-            'date': rec[3],
-            'player_a_name': rec[4],
-            'deck_a': rec[5] or 'No Deck',
-            'player_b_name': rec[6],
-            'deck_b': rec[7] or 'No Deck',
-            'match_result': rec[8],
-            'total_games': rec[9],
-            'video_link': rec[10],
-            'match_id': rec[11],
-            'player_a_game_wins': rec[12],
-            'player_b_game_wins': rec[13],
-            'league_id': rec[14],
-            'player_a_id': rec[15],
-            'player_b_id': rec[16],
-        })
-
-    if not normalized_matches:
-        empty_df = pd.DataFrame()
-        return empty_df, {}, empty_df, {'rankings_df': empty_df}
-
-    ordered_stats = defaultdict(lambda: {'wins': 0, 'losses': 0, 'draws': 0, 'matches': 0, 'games': 0, 'game_wins': 0})
-    pair_stats = defaultdict(lambda: {'wins_a': 0, 'wins_b': 0, 'draws': 0, 'matches': 0})
-    deck_totals = defaultdict(lambda: {'wins': 0, 'losses': 0, 'draws': 0, 'matches': 0, 'games': 0, 'game_wins': 0})
-    details = []
-
-    player_names = {}
-    player_decks_by_league = {}
-    round_player_stats = defaultdict(lambda: {'points': 0, 'game_wins': 0, 'total_games': 0})
-    finals_counts = defaultdict(int)
-    title_counts = defaultdict(int)
-    final_match_by_league = {}
-
-    for match in normalized_matches:
-        deck_a = match['deck_a']
-        deck_b = match['deck_b']
-        result = match['match_result']
-        games = match['total_games']
-        a_game_wins = match['player_a_game_wins']
-        b_game_wins = match['player_b_game_wins']
-        league_id = match['league_id']
-        player_a_id = match['player_a_id']
-        player_b_id = match['player_b_id']
-        player_names[player_a_id] = match['player_a_name']
-        player_names[player_b_id] = match['player_b_name']
-        player_decks_by_league[(league_id, player_a_id)] = deck_a
-        player_decks_by_league[(league_id, player_b_id)] = deck_b
-
-        ordered_stats[(deck_a, deck_b)]['matches'] += 1
-        ordered_stats[(deck_a, deck_b)]['games'] += games
-        ordered_stats[(deck_a, deck_b)]['game_wins'] += a_game_wins
-        ordered_stats[(deck_b, deck_a)]['matches'] += 1
-        ordered_stats[(deck_b, deck_a)]['games'] += games
-        ordered_stats[(deck_b, deck_a)]['game_wins'] += b_game_wins
-
-        deck_totals[deck_a]['matches'] += 1
-        deck_totals[deck_b]['matches'] += 1
-        deck_totals[deck_a]['games'] += games
-        deck_totals[deck_b]['games'] += games
-        deck_totals[deck_a]['game_wins'] += a_game_wins
-        deck_totals[deck_b]['game_wins'] += b_game_wins
-
-        pair_key = tuple(sorted([deck_a, deck_b]))
-        pair_stats[pair_key]['matches'] += 1
-
-        if result == 'A':
-            ordered_stats[(deck_a, deck_b)]['wins'] += 1
-            ordered_stats[(deck_b, deck_a)]['losses'] += 1
-            deck_totals[deck_a]['wins'] += 1
-            deck_totals[deck_b]['losses'] += 1
-            if pair_key[0] == deck_a:
-                pair_stats[pair_key]['wins_a'] += 1
-            else:
-                pair_stats[pair_key]['wins_b'] += 1
-            winner = match['player_a_name']
-        elif result == 'B':
-            ordered_stats[(deck_a, deck_b)]['losses'] += 1
-            ordered_stats[(deck_b, deck_a)]['wins'] += 1
-            deck_totals[deck_a]['losses'] += 1
-            deck_totals[deck_b]['wins'] += 1
-            if pair_key[0] == deck_b:
-                pair_stats[pair_key]['wins_a'] += 1
-            else:
-                pair_stats[pair_key]['wins_b'] += 1
-            winner = match['player_b_name']
-        else:
-            ordered_stats[(deck_a, deck_b)]['draws'] += 1
-            ordered_stats[(deck_b, deck_a)]['draws'] += 1
-            deck_totals[deck_a]['draws'] += 1
-            deck_totals[deck_b]['draws'] += 1
-            pair_stats[pair_key]['draws'] += 1
-            winner = 'Draw'
-
-        if match['match_type'] == 'Round':
-            if result == 'A':
-                round_player_stats[(league_id, player_a_id)]['points'] += 3
-            elif result == 'B':
-                round_player_stats[(league_id, player_b_id)]['points'] += 3
-            else:
-                round_player_stats[(league_id, player_a_id)]['points'] += 1
-                round_player_stats[(league_id, player_b_id)]['points'] += 1
-
-            round_player_stats[(league_id, player_a_id)]['game_wins'] += a_game_wins
-            round_player_stats[(league_id, player_b_id)]['game_wins'] += b_game_wins
-            round_player_stats[(league_id, player_a_id)]['total_games'] += games
-            round_player_stats[(league_id, player_b_id)]['total_games'] += games
-
-        if match['match_type'] == 'Final':
-            finals_counts[deck_a] += 1
-            finals_counts[deck_b] += 1
-            current_final = final_match_by_league.get(league_id)
-            current_key = (match['round_number'] or 0, str(match['match_id']))
-            existing_key = (current_final['round_number'] or 0, str(current_final['match_id'])) if current_final else None
-            if existing_key is None or current_key >= existing_key:
-                final_match_by_league[league_id] = match
-
-        details.append({
-            'League': match['league_name'],
-            'Round': match['round_number'],
-            'Date': match['date'],
-            'Player A': match['player_a_name'],
-            'Deck A': deck_a,
-            'Player B': match['player_b_name'],
-            'Deck B': deck_b,
-            'Result': 'Draw' if result == 'D' else ('Player A wins' if result == 'A' else 'Player B wins'),
-            'Games': games,
-            'Winner': winner,
-            'Video Link': match['video_link'],
-        })
-
-    for final_match in final_match_by_league.values():
-        if final_match['match_result'] == 'A':
-            title_counts[final_match['deck_a']] += 1
-        elif final_match['match_result'] == 'B':
-            title_counts[final_match['deck_b']] += 1
-
-    placement_by_deck = defaultdict(list)
-    round_players_by_league = defaultdict(set)
-    for league_id, player_id in round_player_stats:
-        round_players_by_league[league_id].add(player_id)
-    for league_id, player_ids in round_players_by_league.items():
-        standings_rows = []
-        for player_id in player_ids:
-            stats = round_player_stats[(league_id, player_id)]
-            game_win_rate = (stats['game_wins'] / stats['total_games']) if stats['total_games'] > 0 else 0
-            standings_rows.append({
-                'player_id': player_id,
-                'points': stats['points'],
-                'points_plus': stats['points'] + game_win_rate,
-            })
-        standings_rows.sort(key=lambda row: (row['points_plus'], row['points']), reverse=True)
-        if league_id not in final_match_by_league and standings_rows:
-            winner_deck = player_decks_by_league.get((league_id, standings_rows[0]['player_id']))
-            if winner_deck:
-                title_counts[winner_deck] += 1
-        for index, row in enumerate(standings_rows, start=1):
-            deck_name = player_decks_by_league.get((league_id, row['player_id']))
-            if deck_name:
-                placement_by_deck[deck_name].append(index)
-
-    def _decision_win_rate(stats):
-        decisions = stats['wins'] + stats['losses']
-        return (stats['wins'] / decisions) if decisions > 0 else None
-
-    def _pair_record(pair_key):
-        pair = pair_stats[pair_key]
-        return f"{pair_key[0]} vs {pair_key[1]}", pair
-
-    decks = sorted(
-        deck_totals.keys(),
-        key=lambda deck: (
-            -((_decision_win_rate(deck_totals[deck]) or 0)),
-            -(deck_totals[deck]['wins'] + 0.5 * deck_totals[deck]['draws']),
-            deck,
-        ),
-    )
-    matrix_df = pd.DataFrame('', index=decks, columns=decks)
-    for row_deck in decks:
-        for col_deck in decks:
-            stats = ordered_stats[(row_deck, col_deck)]
-            if stats['matches'] > 0:
-                matrix_df.loc[row_deck, col_deck] = f"{stats['wins']}-{stats['losses']}-{stats['draws']}"
-
-    summary = {}
-    if pair_stats:
-        most_played_pair = max(pair_stats.items(), key=lambda item: item[1]['matches'])
-        summary['most_played_matchup'] = {'label': f"{most_played_pair[0][0]} vs {most_played_pair[0][1]}", 'matches': most_played_pair[1]['matches']}
-
-        most_balanced_pair = min(
-            pair_stats.items(),
-            key=lambda item: (abs(item[1]['wins_a'] - item[1]['wins_b']), -item[1]['matches']),
-        )
-        summary['most_balanced_matchup'] = {'label': f"{most_balanced_pair[0][0]} vs {most_balanced_pair[0][1]}", 'matches': most_balanced_pair[1]['matches']}
-
-        largest_sample_pair = max(pair_stats.items(), key=lambda item: item[1]['matches'])
-        summary['largest_sample_size'] = {'label': f"{largest_sample_pair[0][0]} vs {largest_sample_pair[0][1]}", 'matches': largest_sample_pair[1]['matches']}
-
-    ordered_with_decisions = [
-        ((row_deck, col_deck), stats, _decision_win_rate(stats))
-        for (row_deck, col_deck), stats in ordered_stats.items()
-        if row_deck != col_deck and _decision_win_rate(stats) is not None
-    ]
-    if ordered_with_decisions:
-        best = max(ordered_with_decisions, key=lambda item: (item[2], item[1]['matches']))
-        worst = min(ordered_with_decisions, key=lambda item: (item[2], -item[1]['matches']))
-        summary['highest_winrate_matchup'] = {
-            'label': f"{best[0][0]} vs {best[0][1]}",
-            'rate': best[2],
-            'matches': best[1]['matches'],
-        }
-        summary['worst_matchup'] = {
-            'label': f"{worst[0][0]} vs {worst[0][1]}",
-            'rate': worst[2],
-            'matches': worst[1]['matches'],
-        }
-
-    most_played_deck = max(deck_totals.items(), key=lambda item: item[1]['matches'])
-    best_overall_deck = max(deck_totals.items(), key=lambda item: ((_decision_win_rate(item[1]) or 0), item[1]['matches']))
-    worst_overall_deck = min(deck_totals.items(), key=lambda item: ((_decision_win_rate(item[1]) if _decision_win_rate(item[1]) is not None else 1), -item[1]['matches']))
-    most_successful_deck = max(deck_totals.items(), key=lambda item: (title_counts[item[0]], (_decision_win_rate(item[1]) or 0), item[1]['matches']))
-
-    polarizing_candidates = []
-    for pair_key, pair in pair_stats.items():
-        decisions = pair['wins_a'] + pair['wins_b']
-        if decisions < 5:
-            continue
-        dominant_rate = max(pair['wins_a'], pair['wins_b']) / decisions if decisions > 0 else 0
-        if dominant_rate >= 0.8:
-            dominant_deck = pair_key[0] if pair['wins_a'] >= pair['wins_b'] else pair_key[1]
-            underdog_deck = pair_key[1] if dominant_deck == pair_key[0] else pair_key[0]
-            polarizing_candidates.append((dominant_rate, pair['matches'], f"{dominant_deck} vs {underdog_deck}"))
-    most_polarizing = max(polarizing_candidates, default=None)
-
-    best_counter = None
-    best_counter_rate = -1
-    for (row_deck, col_deck), stats in ordered_stats.items():
-        if row_deck == col_deck:
-            continue
-        rate = _decision_win_rate(stats)
-        if rate is None:
-            continue
-        if rate > best_counter_rate and stats['matches'] >= 3:
-            best_counter_rate = rate
-            best_counter = f"{row_deck} vs {col_deck}"
-
-    ranking_rows = []
-    for deck in decks:
-        totals = deck_totals[deck]
-        decisions = totals['wins'] + totals['losses']
-        overall_win_rate = (totals['wins'] / decisions) if decisions > 0 else 0
-        overall_win_rate_incl_draw = ((totals['wins'] + 0.5 * totals['draws']) / totals['matches']) if totals['matches'] > 0 else 0
-        opponents = [op for op in decks if op != deck and ordered_stats[(deck, op)]['matches'] > 0]
-        best_matchup = '-'
-        worst_matchup = '-'
-        if opponents:
-            best_opponent = max(
-                opponents,
-                key=lambda op: ((_decision_win_rate(ordered_stats[(deck, op)]) or -1), ordered_stats[(deck, op)]['matches'])
-            )
-            worst_opponent = min(
-                opponents,
-                key=lambda op: ((_decision_win_rate(ordered_stats[(deck, op)]) if _decision_win_rate(ordered_stats[(deck, op)]) is not None else 1), -ordered_stats[(deck, op)]['matches'])
-            )
-            best_matchup = f"{best_opponent} ({(_decision_win_rate(ordered_stats[(deck, best_opponent)]) or 0):.1%})"
-            worst_matchup = f"{worst_opponent} ({(_decision_win_rate(ordered_stats[(deck, worst_opponent)]) or 0):.1%})"
-        ranking_rows.append({
-            'Deck': deck,
-            'Overall Win Rate': round(overall_win_rate * 100, 2),
-            'Overall Win Rate (incl Draw)': round(overall_win_rate_incl_draw * 100, 2),
-            'Matches': totals['matches'],
-            'Wins': totals['wins'],
-            'Losses': totals['losses'],
-            'Draws': totals['draws'],
-            'Titles': title_counts[deck],
-            'Finals': finals_counts[deck],
-            'Best Matchup': best_matchup,
-            'Worst Matchup': worst_matchup,
-        })
-    rankings_df = pd.DataFrame(ranking_rows)
-
-    details_df = pd.DataFrame(details).sort_values(by=['Date', 'League', 'Round'], ascending=[False, True, True])
-    meta_statistics = {
-        'best_overall_deck': f"{best_overall_deck[0]} ({(_decision_win_rate(best_overall_deck[1]) or 0):.1%})",
-        'worst_overall_deck': f"{worst_overall_deck[0]} ({(_decision_win_rate(worst_overall_deck[1]) or 0):.1%})",
-        'best_counter_deck': best_counter or '-',
-        'most_played_deck': f"{most_played_deck[0]} ({most_played_deck[1]['matches']} matches)",
-        'most_successful_deck': f"{most_successful_deck[0]} ({title_counts[most_successful_deck[0]]} titles)",
-        'most_played_matchup': summary.get('most_played_matchup', {}).get('label', '-'),
-        'most_polarizing_matchup': most_polarizing[2] if most_polarizing else '-',
-        'rankings_df': rankings_df.sort_values(by=['Overall Win Rate', 'Matches'], ascending=[False, False]),
-    }
-    return matrix_df, summary, details_df, meta_statistics
-
 st.set_page_config(page_title="League Analytics", layout="wide")
 require_auth()
 client = get_client()
 
-_img_left, _img_center, _img_right = st.columns([1, 2, 1])
-with _img_center:
-    st.image("assets/logo_analytics.png", width=630)
 
 leagues = client.list_leagues()
 if not leagues:
@@ -634,163 +324,6 @@ for match in all_matches:
         match.player_b,
     ))
 
-st.markdown("## Deck vs Deck Analytics")
-deck_matrix_df, deck_summary, deck_details_df, deck_meta_stats = build_deck_matchup_matrix(tuple(h2h_match_records))
-
-if deck_matrix_df.empty:
-    st.info("No deck-vs-deck data available.")
-else:
-    most_played = deck_summary.get('most_played_matchup', {'label': '-', 'matches': 0})
-
-    def _deck_cell_color(value):
-        if not value:
-            return 'background-color: #e0e0e0;'
-        wins, losses, draws = [int(x) for x in value.split('-')]
-        if wins + losses == 0:
-            return 'background-color: #d0d0d0;'
-        score = (wins - losses) / (wins + losses)
-        if score > 0:
-            red = int(255 * (1 - score))
-            green = 220
-        elif score < 0:
-            red = 220
-            green = int(255 * (1 + score))
-        else:
-            return 'background-color: #b8b8b8;'
-        return f'background-color: rgb({red},{green},0);'
-
-    def _deck_styles(df):
-        return df.applymap(_deck_cell_color)
-
-    deck_matrix_styler = deck_matrix_df.style.apply(_deck_styles, axis=None)
-    deck_matrix_styler = deck_matrix_styler.set_table_styles([
-        {
-            'selector': 'th, td',
-            'props': [
-                ('text-align', 'center'),
-                ('font-size', '0.68rem'),
-                ('padding', '2px'),
-                ('white-space', 'nowrap'),
-                ('line-height', '1.1'),
-            ],
-        },
-        {
-            'selector': 'td',
-            'props': [
-                ('width', '36px'),
-                ('height', '36px'),
-                ('min-width', '36px'),
-                ('max-width', '36px'),
-                ('min-height', '36px'),
-                ('max-height', '36px'),
-                ('overflow', 'hidden'),
-            ],
-        },
-        {
-            'selector': 'th',
-            'props': [
-                ('min-width', '72px'),
-                ('max-width', '96px'),
-                ('font-size', '0.66rem'),
-                ('padding', '2px 3px'),
-            ],
-        },
-    ]).set_properties(**{
-        'text-align': 'center',
-        'font-size': '0.68rem',
-    })
-    deck_matrix_html = deck_matrix_styler.to_html()
-    scrollable_deck_matrix_html = f"""
-    <style>
-      .deck-matrix-scroll {{
-        width: 100%;
-        height: 680px;
-        overflow: auto;
-      }}
-      .deck-matrix-scroll table thead th {{
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: #ffffff;
-      }}
-      .deck-matrix-scroll table th.row_heading {{
-        position: sticky;
-        left: 0;
-        z-index: 3;
-        background: #f7f7f7;
-      }}
-      .deck-matrix-scroll table th.blank {{
-        position: sticky;
-        left: 0;
-        top: 0;
-        z-index: 4;
-        background: #ffffff;
-      }}
-    </style>
-    <div class="deck-matrix-scroll">
-      {deck_matrix_html}
-    </div>
-    """
-    html(scrollable_deck_matrix_html, height=720)
-
-    with st.expander("Deck Matchup Details"):
-        all_decks = list(deck_matrix_df.index)
-        default_deck_a = all_decks[0]
-        default_deck_b = all_decks[0]
-        if most_played['label'] != '-' and ' vs ' in most_played['label']:
-            default_deck_a, default_deck_b = most_played['label'].split(' vs ', 1)
-            if default_deck_a not in all_decks:
-                default_deck_a = all_decks[0]
-            if default_deck_b not in all_decks:
-                default_deck_b = all_decks[0]
-
-        if 'deck_matchup_detail_deck' not in st.session_state or st.session_state.deck_matchup_detail_deck not in all_decks:
-            st.session_state.deck_matchup_detail_deck = default_deck_a
-
-        selected_deck_a = st.selectbox("Deck", all_decks, key="deck_matchup_detail_deck")
-        opponent_options = [d for d in all_decks if d != selected_deck_a]
-        if default_deck_b not in opponent_options:
-            default_deck_b = opponent_options[0]
-        if 'deck_matchup_detail_opponent' not in st.session_state or st.session_state.deck_matchup_detail_opponent not in opponent_options:
-            st.session_state.deck_matchup_detail_opponent = default_deck_b
-        selected_deck_b = st.selectbox(
-            "Opponent",
-            opponent_options,
-            index=0,
-            key="deck_matchup_detail_opponent",
-        )
-
-        matchup_details = deck_details_df[
-            ((deck_details_df['Deck A'] == selected_deck_a) & (deck_details_df['Deck B'] == selected_deck_b)) |
-            ((deck_details_df['Deck A'] == selected_deck_b) & (deck_details_df['Deck B'] == selected_deck_a))
-        ]
-        if matchup_details.empty:
-            st.info("No historical matches found for this deck matchup.")
-        else:
-            st.dataframe(
-                matchup_details[
-                    [
-                        'League',
-                        'Round',
-                        'Date',
-                        'Player A',
-                        'Deck A',
-                        'Player B',
-                        'Deck B',
-                        'Result',
-                        'Games',
-                        'Winner',
-                        'Video Link',
-                    ]
-                ],
-                use_container_width=True,
-                column_config={
-                    'Video Link': st.column_config.LinkColumn('Video Link', display_text='🔗 Open'),
-                },
-            )
-
-    st.markdown("### Deck Matchup Rankings")
-    st.dataframe(deck_meta_stats.get('rankings_df', pd.DataFrame()), use_container_width=True)
 
 st.markdown("## Career Timeline")
 
@@ -951,6 +484,9 @@ else:
 
     style = '''
     <style>
+        body {
+            font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
         .timeline-board { display: flex; flex-direction: column; gap: 18px; }
         .player-row { display: flex; flex-direction: column; gap: 6px; }
         .player-row-header { font-size: 0.95rem; color: #222; font-family: inherit; }
@@ -963,6 +499,7 @@ else:
     '''
     html(style + timeline_html, height=320 + len(player_timelines) * 42)
 
+st.divider()
 st.markdown("## Head-to-Head Analytics")
 match_filter = st.selectbox(
     "Select match subset for Head-to-Head Analytics",
@@ -1013,13 +550,14 @@ else:
         return f'background-color: rgb({red},{green},0);'
 
     def _h2h_styles(df):
-        return df.applymap(_h2h_color_cell)
+        return df.map(_h2h_color_cell)
 
     matrix_styler = matrix_df.style.apply(_h2h_styles, axis=None)
     matrix_styler = matrix_styler.set_table_styles([
         {
             'selector': 'th, td',
             'props': [
+                ('font-family', '"Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'),
                 ('text-align', 'center'),
                 ('font-size', '0.75rem'),
                 ('padding', '4px'),
@@ -1052,6 +590,14 @@ else:
     if tooltip_df.values.any():
         matrix_styler = matrix_styler.set_tooltips(tooltip_df)
     matrix_html = matrix_styler.to_html()
+    matrix_html = f"""
+    <style>
+        body, table {{
+            font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }}
+    </style>
+    {matrix_html}
+    """
     matrix_height = min(900, 140 + len(matrix_df.index) * 60)
     html(matrix_html, height=matrix_height)
 
@@ -1116,6 +662,7 @@ else:
                     },
                 )
 
+st.divider()
 st.markdown("## Hall of Fame")
 
 def _parse_date(date_str):
