@@ -85,6 +85,7 @@ with st.sidebar:
 league = st.Page("pages/League.py", title="League")
 round_view = st.Page("pages/Round_View.py", title="Match Day")
 playoffs = st.Page("pages/Playoffs.py", title="Playoffs")
+data_analyzer = st.Page("pages/League_Analytics.py", title="League Analytics")
 player_management = st.Page("pages/Player_Management.py", title="Manage Users")
 league_management = st.Page("pages/League_Management.py", title="Manage Leagues")
 deck_management = st.Page("pages/Deck_Management.py", title="Manage Decks")
@@ -92,7 +93,7 @@ rules = st.Page("pages/Rules.py", title="Rules")
 profile = st.Page("pages/Profile.py", title="Profile")
 
 # Build navigation based on roles
-pages = [rules, league, round_view, playoffs, profile, deck_management]
+pages = [rules, league, round_view, playoffs, data_analyzer, profile, deck_management]
 if is_admin:
     pages.extend([player_management, league_management])
 

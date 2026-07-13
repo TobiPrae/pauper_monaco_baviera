@@ -2,6 +2,7 @@ import streamlit as st
 from datastore_client import get_client
 from auth import require_auth
 from models import compute_match_summary
+from utils import validate_video_link
 
 st.set_page_config(page_title="Match Day")
 
@@ -122,21 +123,23 @@ if current_round:
                         if starting_player is None:
                             st.error("Please select a starting player before saving.")
                         else:
-                            games_payload = [
-                                {'winner': 'A' if g1_winner == m.player_a else ('B' if g1_winner == m.player_b else None)},
-                                {'winner': 'A' if g2_winner == m.player_a else ('B' if g2_winner == m.player_b else None)},
-                                {'winner': 'A' if g3_winner == m.player_a else ('B' if g3_winner == m.player_b else None)},
-                            ]
-                            
-                            client.update_match(
-                                m.id,
-                                games=games_payload,
-                                starting_player=starting_player,
-                                went_in_time=went_in_time,
-                                match_type=getattr(m, 'match_type', 'Round'),
-                                video_link=video_link_val
-                            )
-                            st.toast(f"Result for {name_a} vs {name_b} saved!")
-                            st.rerun()
-
-
+                            is_valid_video_link, normalized_video_link, video_link_error = validate_video_link(video_link_val)
+                            if not is_valid_video_link:
+                                st.error(video_link_error)
+                            else:
+                                games_payload = [
+                                    {'winner': 'A' if g1_winner == m.player_a else ('B' if g1_winner == m.player_b else None)},
+                                    {'winner': 'A' if g2_winner == m.player_a else ('B' if g2_winner == m.player_b else None)},
+                                    {'winner': 'A' if g3_winner == m.player_a else ('B' if g3_winner == m.player_b else None)},
+                                ]
+                                
+                                client.update_match(
+                                    m.id,
+                                    games=games_payload,
+                                    starting_player=starting_player,
+                                    went_in_time=went_in_time,
+                                    match_type=getattr(m, 'match_type', 'Round'),
+                                    video_link=normalized_video_link
+                                )
+                                st.toast(f"Result for {name_a} vs {name_b} saved!")
+                                st.rerun()
