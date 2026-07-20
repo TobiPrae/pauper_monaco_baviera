@@ -44,12 +44,40 @@ def _get_current_week_nr(rounds):
 
 current_week_default = _get_current_week_nr(league_rounds)
 
+# Fetch all matches once (reused below for the selected round)
+all_matches = client.list_matches()
+
+# Determine which rounds have open (unrecorded) matches
+def _is_match_open(m):
+    return (m.starting_player is None
+            and m.games[0].winner is None
+            and m.games[1].winner is None
+            and m.games[2].winner is None)
+
+round_id_to_nr = {r.id: r.nr for r in league_rounds}
+weeks_with_open_games = set()
+for m in all_matches:
+    rid = getattr(m, 'round_id', None)
+    if rid in round_id_to_nr and getattr(m, 'match_type', 'Round') == 'Round' and _is_match_open(m):
+        weeks_with_open_games.add(round_id_to_nr[rid])
+
+# Only warn about open games for weeks that have already ended
+today = date.today()
+past_week_nrs = set()
+for r in league_rounds:
+    try:
+        if date.fromisoformat(r.end_date) < today:
+            past_week_nrs.add(r.nr)
+    except (ValueError, TypeError):
+        pass
+overdue_weeks = weeks_with_open_games & past_week_nrs
+
 # Button-based navigation for selecting the Match Day
 selected_round_nr = st.segmented_control(
     "Select Match Week",
     options=[r.nr for r in league_rounds],
     default=current_week_default,
-    format_func=lambda x: f"Week {x}",
+    format_func=lambda x: f"🟠 Week {x}" if x in overdue_weeks else f"Week {x}",
     key=f"round_selector_{selected_league.id}"
 )
 
@@ -59,9 +87,7 @@ current_round = next((r for r in league_rounds if r.nr == selected_round_nr), No
 if current_round:
     st.info(f"**Schedule:** {current_round.start_date} to {current_round.end_date}")
 
-    # Fetch matches for this specific round
-    all_matches = client.list_matches()
-    # Ensure we only display standard round-robin matches
+    # Filter pre-fetched matches for this specific round
     round_matches = [m for m in all_matches if getattr(m, 'round_id', None) == current_round.id and getattr(m, 'match_type', 'Round') == 'Round']
     
     # Get user mapping for names
