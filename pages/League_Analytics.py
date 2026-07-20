@@ -196,7 +196,7 @@ else:
                 longest_win = max(longest_win, current_win)
             else:
                 current_win = 0
-        record = f"{wins}-{draws}-{losses}"
+        record = f"{wins}-{losses}-{draws}"
         header_html = (
             f"<div class=\"player-row-header\">"
             f"<span class=\"player-name\"><strong>{html_mod.escape(events[0]['player_name'])}</strong></span>"
