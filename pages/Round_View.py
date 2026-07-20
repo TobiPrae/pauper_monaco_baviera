@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import date
 from datastore_client import get_client
 from auth import require_auth
 from models import compute_match_summary
@@ -28,11 +29,26 @@ if not league_rounds:
     st.warning(f"No rounds found for League {selected_league.nr}.")
     st.stop()
 
+# Determine the current week based on today's date
+def _get_current_week_nr(rounds):
+    today = date.today()
+    for r in rounds:
+        try:
+            r_start = date.fromisoformat(r.start_date)
+            r_end = date.fromisoformat(r.end_date)
+            if r_start <= today <= r_end:
+                return r.nr
+        except (ValueError, TypeError):
+            continue
+    return rounds[0].nr
+
+current_week_default = _get_current_week_nr(league_rounds)
+
 # Button-based navigation for selecting the Match Day
 selected_round_nr = st.segmented_control(
     "Select Match Week",
     options=[r.nr for r in league_rounds],
-    default=league_rounds[0].nr,
+    default=current_week_default,
     format_func=lambda x: f"Week {x}",
     key=f"round_selector_{selected_league.id}"
 )
