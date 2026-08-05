@@ -4,7 +4,7 @@ from auth import require_admin
 from datetime import datetime, timedelta
 from itertools import combinations
 
-st.set_page_config(page_title="League Management")
+
 
 require_admin()
 

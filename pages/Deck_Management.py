@@ -2,7 +2,7 @@ import streamlit as st
 from datastore_client import get_client
 from auth import require_auth
 
-st.set_page_config(page_title="Deck Management")
+
 
 require_auth()
 

@@ -3,7 +3,7 @@ from datastore_client import get_client
 from auth import require_auth, hash_password
 from utils import validate_password
 
-st.set_page_config(page_title="Profile")
+
 
 require_auth()
 client = get_client()
