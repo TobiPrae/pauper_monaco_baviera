@@ -1,7 +1,7 @@
 import streamlit as st
 from auth import require_auth
 
-st.set_page_config(page_title="Rules")
+
 
 require_auth()
 

@@ -5,7 +5,7 @@ from auth import require_auth
 from models import compute_match_summary
 from utils import validate_video_link
 
-st.set_page_config(page_title="Match Day")
+
 
 require_auth()
 client = get_client()

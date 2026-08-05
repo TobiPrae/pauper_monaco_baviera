@@ -5,7 +5,7 @@ from auth import require_auth
 from datetime import datetime, timedelta
 import pandas as pd
 
-st.set_page_config(page_title="League")
+
 
 require_auth()
 

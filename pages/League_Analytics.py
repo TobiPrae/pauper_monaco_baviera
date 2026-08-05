@@ -10,7 +10,7 @@ from models import compute_match_summary
 from streamlit.components.v1 import html
 
 
-st.set_page_config(page_title="League Analytics", layout="wide")
+
 require_auth()
 client = get_client()
 

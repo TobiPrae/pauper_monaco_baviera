@@ -3,7 +3,7 @@ from datastore_client import get_client
 from auth import require_admin, hash_password
 from utils import validate_password
 
-st.set_page_config(page_title="Player Management")
+
 
 require_admin()
 
