@@ -35,7 +35,7 @@ def require_auth():
     
     # If not authenticated, show login and stop execution
     if st.session_state.user is None:
-        st.image("assets/logo.png", width="stretch")
+        st.image("assets/logo.png", use_container_width=True)
         
         def check_login():
             """Callback für Login-Check (Enter oder Button)"""
