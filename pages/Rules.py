@@ -38,8 +38,8 @@ st.markdown("""
 *   The decklists will remain hidden until the playoffs are generated.
 
 ### Other
-*   Intentional draws are allowed
-*   Tournament drops should not be done as it messes with the round robin logic
+*   Intentional draws are allowed.
+*   Please don't drop from the tournament, if you can avoid it.
 
 ### Most Important Rule
 *   Good luck, have fun 🍆
@@ -50,6 +50,7 @@ st.markdown("""
 st.divider()
 st.subheader("Hall of Fame")
 col1, col2, col3 = st.columns(3)
-col1.image("assets/202501.png", caption="Tobi (2025-01)", width=150)
+col1.image("assets/202501.png", caption="TobiP (2025-01)", width=150)
 col2.image("assets/202601.png", caption="Pat (2026-01)", width=150)
 col3.image("assets/202602.png", caption="Juri (2026-02)", width=150)
+col1.image("assets/202603.png", caption="TobiS (2026-03)", width=150)
