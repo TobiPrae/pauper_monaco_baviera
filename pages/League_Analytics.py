@@ -66,14 +66,14 @@ for league in league_options:
 
 
 
-st.markdown("## Career Timeline")
+st.markdown("## Player Rivalries")
 
 timeline_default_leagues = [league for league in default_leagues if league.id in monaco_league_ids]
 if not timeline_default_leagues:
     timeline_default_leagues = monaco_leagues
 
 timeline_selected_leagues = st.multiselect(
-    "Select leagues for Career Timeline:",
+    "Select leagues for analytics:",
     options=monaco_leagues,
     default=timeline_default_leagues,
     format_func=lambda l: f"{l.league_name or 'League'} ({l.nr})",
@@ -129,6 +129,7 @@ for match in all_matches:
         match_events.append({
             'player_id': player_id,
             'player_name': player_name,
+            'opponent_id': opponent_id,
             'opponent': opponent_name,
             'season': league.league_name or f"League {league.nr}",
             'season_id': league.id,
@@ -166,6 +167,70 @@ def _timeline_sort_key(item):
 
 for event in sorted(match_events, key=_timeline_sort_key):
     player_timelines[event['player_id']].append(event)
+
+rivalry_stats = defaultdict(lambda: defaultdict(lambda: {'matches': 0, 'wins': 0, 'losses': 0, 'draws': 0}))
+for event in match_events:
+    stats = rivalry_stats[event['player_id']][event['opponent_id']]
+    stats['matches'] += 1
+    if event['outcome'] == 'W':
+        stats['wins'] += 1
+    elif event['outcome'] == 'L':
+        stats['losses'] += 1
+    elif event['outcome'] == 'D':
+        stats['draws'] += 1
+
+def _rivalry_leaders(opponents, metric):
+    if not opponents:
+        return []
+    highest_count = max(stats[metric] for stats in opponents.values())
+    if highest_count == 0:
+        return []
+    tied_opponents = [
+        (user_map.get(opponent_id, f"Spieler {opponent_id}"), stats[metric])
+        for opponent_id, stats in opponents.items()
+        if stats[metric] == highest_count
+    ]
+    return sorted(tied_opponents, key=lambda item: item[0].casefold())
+
+if player_timelines:
+    rivalry_player_ids = sorted(
+        player_timelines,
+        key=lambda player_id: user_map.get(player_id, f"Spieler {player_id}").casefold(),
+    )
+    selected_rivalry_player = st.selectbox(
+        "Select player:",
+        options=rivalry_player_ids,
+        format_func=lambda player_id: user_map.get(player_id, f"Spieler {player_id}"),
+        key="league_analytics_rivalry_player",
+    )
+    rivalry_categories = [
+        ("Arch Enemy", "matches", "match", "Most games played"),
+        ("Push Over", "wins", "win", "Most wins against"),
+        ("Nightmare", "losses", "loss", "Most losses against"),
+        ("Worthy Opponent", "draws", "draw", "Most draws against"),
+    ]
+    rivalry_tiles = st.columns(len(rivalry_categories))
+    for tile, (title, metric, unit, description) in zip(rivalry_tiles, rivalry_categories):
+        with tile:
+            with st.container(border=True):
+                st.markdown(f"**{title}**")
+                st.caption(description)
+                leaders = _rivalry_leaders(rivalry_stats[selected_rivalry_player], metric)
+                if not leaders:
+                    st.write("None")
+                else:
+                    for opponent_name, count in leaders:
+                        unit_label = unit if count == 1 else {
+                            'match': 'matches played',
+                            'win': 'wins against',
+                            'loss': 'losses against',
+                            'draw': 'draws against',
+                        }[unit]
+                        st.write(f"{opponent_name} ({count} {unit_label})")
+else:
+    st.info('No rivalry data available for the selected leagues.')
+
+st.markdown("## Career Timeline")
 
 if not player_timelines:
     st.info('No timeline data available for the selected leagues.')
