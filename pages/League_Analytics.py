@@ -204,7 +204,7 @@ if player_timelines:
         key="league_analytics_rivalry_player",
     )
     rivalry_categories = [
-        ("Arch Enemy", "matches", "match", "Most games played"),
+        ("Arch Enemy", "matches", "match", "Most games played against"),
         ("Push Over", "wins", "win", "Most wins against"),
         ("Nightmare", "losses", "loss", "Most losses against"),
         ("Worthy Opponent", "draws", "draw", "Most draws against"),
@@ -221,10 +221,10 @@ if player_timelines:
                 else:
                     for opponent_name, count in leaders:
                         unit_label = unit if count == 1 else {
-                            'match': 'matches played',
-                            'win': 'wins against',
-                            'loss': 'losses against',
-                            'draw': 'draws against',
+                            'match': 'matches',
+                            'win': 'wins',
+                            'loss': 'losses',
+                            'draw': 'draws',
                         }[unit]
                         st.write(f"{opponent_name} ({count} {unit_label})")
 else:
