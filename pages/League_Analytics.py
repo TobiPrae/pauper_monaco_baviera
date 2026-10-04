@@ -197,9 +197,16 @@ if player_timelines:
         player_timelines,
         key=lambda player_id: user_map.get(player_id, f"Spieler {player_id}").casefold(),
     )
+    logged_in_player_id = st.session_state.user.id
+    default_rivalry_index = (
+        rivalry_player_ids.index(logged_in_player_id)
+        if logged_in_player_id in rivalry_player_ids
+        else 0
+    )
     selected_rivalry_player = st.selectbox(
         "Select player:",
         options=rivalry_player_ids,
+        index=default_rivalry_index,
         format_func=lambda player_id: user_map.get(player_id, f"Spieler {player_id}"),
         key="league_analytics_rivalry_player",
     )
@@ -226,7 +233,7 @@ if player_timelines:
                             'loss': 'losses',
                             'draw': 'draws',
                         }[unit]
-                        st.write(f"{opponent_name} ({count} {unit_label})")
+                        st.write(f"{opponent_name} ({count}")
 else:
     st.info('No rivalry data available for the selected leagues.')
 
