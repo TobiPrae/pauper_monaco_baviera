@@ -233,7 +233,7 @@ if player_timelines:
                             'loss': 'losses',
                             'draw': 'draws',
                         }[unit]
-                        st.write(f"{opponent_name} ({count}")
+                        st.write(f"{opponent_name} ({count})")
 else:
     st.info('No rivalry data available for the selected leagues.')
 
