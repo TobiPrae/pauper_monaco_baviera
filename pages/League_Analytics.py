@@ -213,7 +213,7 @@ if player_timelines:
     rivalry_categories = [
         ("Arch Enemy", "matches", "match", "Most games played against"),
         ("Push Over", "wins", "win", "Most wins against"),
-        ("Nightmare", "losses", "loss", "Most losses against"),
+        ("Nemesis", "losses", "loss", "Most losses against"),
         ("Worthy Opponent", "draws", "draw", "Most draws against"),
     ]
     rivalry_tiles = st.columns(len(rivalry_categories))
